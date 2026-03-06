@@ -9,13 +9,11 @@ import { TenderFilterBar, type TenderFilterState } from '@/components/tenders/Te
 import { CategoryBadge } from '@/components/tenders/CategoryBadge';
 import { TagChip } from '@/components/tenders/TagChip';
 import { ExportButton } from '@/components/ui/ExportButton';
-import { useAuth } from '@/context/AuthContext';
 import { toastSuccess } from '@/hooks/useToast';
 import { exportToExcel } from '@/utils/exportExcel';
-import { LogOut, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export function AdminTenders() {
-  const { user, logout } = useAuth();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<TenderFilterState>({ category_id: null, search: '', tag: '' });
   const [statusFilter, setStatusFilter] = useState('');
@@ -31,19 +29,7 @@ export function AdminTenders() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">Admin</Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">Tenders</h1>
           <div className="flex items-center gap-2">
@@ -132,7 +118,6 @@ export function AdminTenders() {
             <Button variant="outline" disabled={page * 10 >= data.total} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
         )}
-      </main>
     </div>
   );
 }

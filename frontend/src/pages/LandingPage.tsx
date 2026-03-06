@@ -18,7 +18,6 @@ import { CTABanner } from '@/components/landing/CTABanner';
 import { Footer } from '@/components/landing/Footer';
 import { getCategoryAsset } from '@/utils/categoryAssets';
 import { FileText, Clock } from 'lucide-react';
-import { cn } from '@/utils/cn';
 
 function Navbar() {
   const { user } = useAuth();

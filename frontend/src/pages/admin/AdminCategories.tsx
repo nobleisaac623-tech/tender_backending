@@ -2,16 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesService } from '@/services/categories';
-import { useAuth } from '@/context/AuthContext';
 import { toastSuccess, toastError } from '@/hooks/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
 
 export function AdminCategories() {
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -74,29 +72,7 @@ export function AdminCategories() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">
-            Admin
-          </Link>
-          <nav className="flex gap-4">
-            <Link to="/admin/tenders" className="text-sm text-gray-600 hover:text-primary">
-              Tenders
-            </Link>
-            <Link to="/admin/categories" className="text-sm font-medium text-primary">
-              Categories
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <Link
           to="/admin/dashboard"
           className="mb-4 inline-flex items-center text-sm text-primary hover:underline"
@@ -279,7 +255,6 @@ export function AdminCategories() {
             )}
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

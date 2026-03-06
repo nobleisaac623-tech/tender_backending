@@ -10,6 +10,7 @@ import { ForbiddenPage } from '@/pages/ForbiddenPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminTenders } from '@/pages/admin/AdminTenders';
 import { AdminTenderCreate } from '@/pages/admin/AdminTenderCreate';
@@ -54,118 +55,23 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forbidden" element={<ForbiddenPage />} />
 
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/tenders"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminTenders />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/tenders/create"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminTenderCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/tenders/:id"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminTenderDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/suppliers"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminSuppliers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/suppliers/:id"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminSupplierDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/evaluators"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminEvaluators />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reports"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminReports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/audit-log"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminAuditLog />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/blacklist"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminBlacklist />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/categories"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminCategories />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/contracts"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminContracts />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/contracts/create"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminContractCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/contracts/:id"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminContractDetail />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="tenders" element={<AdminTenders />} />
+              <Route path="tenders/create" element={<AdminTenderCreate />} />
+              <Route path="tenders/:id" element={<AdminTenderDetail />} />
+              <Route path="suppliers" element={<AdminSuppliers />} />
+              <Route path="suppliers/:id" element={<AdminSupplierDetail />} />
+              <Route path="evaluators" element={<AdminEvaluators />} />
+              <Route path="reports" element={<AdminReports />} />
+              <Route path="audit-log" element={<AdminAuditLog />} />
+              <Route path="blacklist" element={<AdminBlacklist />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="contracts" element={<AdminContracts />} />
+              <Route path="contracts/create" element={<AdminContractCreate />} />
+              <Route path="contracts/:id" element={<AdminContractDetail />} />
+            </Route>
 
             <Route
               path="/evaluator/dashboard"

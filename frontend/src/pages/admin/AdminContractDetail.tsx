@@ -3,16 +3,15 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractService } from '@/services/contractService';
 import { ratingService } from '@/services/ratingService';
-import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toastSuccess, toastError } from '@/hooks/useToast';
-import { LogOut, ArrowLeft, Check, Clock, Plus, Download, Pencil, FileText, Star } from 'lucide-react';
+import { ArrowLeft, Check, Clock, Plus, Download, Pencil, Star } from 'lucide-react';
 import { StarRating } from '@/components/ui/StarRating';
 import { RatingBreakdown } from '@/components/ratings/RatingBreakdown';
-import type { Contract, ContractMilestone, ContractStatus, MilestoneStatus, SupplierRating } from '@/types';
+import type { ContractMilestone, ContractStatus, MilestoneStatus } from '@/types';
 
 const statusConfig: Record<ContractStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-200 text-gray-800' },
@@ -36,7 +35,6 @@ function formatCurrency(value: number) {
 export function AdminContractDetail() {
   const { id } = useParams<{ id: string }>();
   const contractId = id ? parseInt(id, 10) : 0;
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [editingMilestoneId, setEditingMilestoneId] = useState<number | null>(null);
   const [uploadType, setUploadType] = useState('contract');
@@ -133,21 +131,7 @@ export function AdminContractDetail() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">
-            Admin
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <Link to="/admin/contracts" className="mb-4 inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="mr-1 h-4 w-4" /> Back to Contracts
         </Link>
@@ -399,7 +383,6 @@ export function AdminContractDetail() {
             </div>
           </CardContent>
         </Card>
-      </main>
 
       {ratingModalOpen && contract && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setRatingModalOpen(false)}>

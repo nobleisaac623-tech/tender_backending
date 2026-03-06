@@ -1,6 +1,4 @@
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -34,8 +32,8 @@ export function SupplierRegistrationsChart({ data, isEmpty }: Props) {
       <AreaChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="supplierRegFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+            <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -52,17 +50,25 @@ export function SupplierRegistrationsChart({ data, isEmpty }: Props) {
           allowDecimals={false}
         />
         <Tooltip
-          contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-          formatter={(value: number) => [value, 'Registrations']}
+          contentStyle={{
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            borderLeft: '4px solid #10b981',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          formatter={(value: number | undefined) => [value ?? 0, 'Registrations']}
         />
         <Area
           type="monotone"
           dataKey="count"
-          stroke="#22c55e"
+          stroke="#10b981"
           strokeWidth={2}
           fill="url(#supplierRegFill)"
+          dot={{ r: 4, fill: '#10b981' }}
+          activeDot={{ r: 5, fill: '#10b981' }}
+          animationDuration={800}
         />
-        <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
       </AreaChart>
     </ResponsiveContainer>
   );

@@ -8,16 +8,14 @@ import { blacklistService } from '@/services/blacklist';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/context/AuthContext';
 import { toastSuccess, toastError } from '@/hooks/useToast';
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { StarRating } from '@/components/ui/StarRating';
 import { RatingBreakdown } from '@/components/ratings/RatingBreakdown';
 
 export function AdminSupplierDetail() {
   const { id } = useParams<{ id: string }>();
   const supplierId = id ? parseInt(id, 10) : 0;
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [blacklistModalOpen, setBlacklistModalOpen] = useState(false);
   const [blacklistReason, setBlacklistReason] = useState('');
@@ -103,19 +101,7 @@ export function AdminSupplierDetail() {
   const ratingSummary = (supplier as User & { rating_summary?: { average_overall: number | null; total_contracts_rated: number } }).rating_summary;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">Admin</Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <Link to="/admin/suppliers" className="mb-4 inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="mr-1 h-4 w-4" /> Back to Suppliers
         </Link>
@@ -234,7 +220,6 @@ export function AdminSupplierDetail() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {blacklistModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setBlacklistModalOpen(false)}>

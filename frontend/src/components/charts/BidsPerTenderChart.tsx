@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 
 const MAX_TITLE_LEN = 20;
@@ -25,11 +26,22 @@ interface Props {
   isEmpty: boolean;
 }
 
+function getBarColor(maxCount: number, count: number): string {
+  if (maxCount <= 0) return '#bfdbfe';
+  const t = maxCount > 0 ? count / maxCount : 0;
+  // Interpolate from #bfdbfe (light) to #1e40af (dark)
+  const r = Math.round(191 - (191 - 30) * t);
+  const g = Math.round(219 - (219 - 64) * t);
+  const b = Math.round(254 - (254 - 175) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
 export function BidsPerTenderChart({ data, isEmpty }: Props) {
   const chartData = data.map((d) => ({
     ...d,
     shortTitle: truncate(d.tender_title),
   }));
+  const maxCount = Math.max(0, ...chartData.map((d) => d.bid_count));
 
   if (isEmpty) {
     return (
@@ -57,17 +69,27 @@ export function BidsPerTenderChart({ data, isEmpty }: Props) {
           axisLine={false}
         />
         <Tooltip
-          contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-          formatter={(value: number) => [value, 'Bids']}
+          contentStyle={{
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          formatter={(value: number | undefined) => [value ?? 0, 'Bids']}
           labelFormatter={(_, payload) => payload[0]?.payload?.tender_title ?? ''}
         />
-        <Bar dataKey="bid_count" radius={[0, 4, 4, 0]} maxBarSize={24} fill="url(#bidsPerTenderGrad)">
-          <defs>
-            <linearGradient id="bidsPerTenderGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#60a5fa" />
-            </linearGradient>
-          </defs>
+        <Bar
+          dataKey="bid_count"
+          radius={[0, 6, 6, 0]}
+          maxBarSize={24}
+          animationDuration={800}
+        >
+          {chartData.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={getBarColor(maxCount, entry.bid_count)}
+            />
+          ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

@@ -91,10 +91,31 @@ $summary = [
     'pending_approvals' => $pendingApprovals,
 ];
 
+// Recent activity — last 10 events from audit_log joined with users
+$stmt = $pdo->query("
+    SELECT
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.details,
+        al.created_at,
+        u.name AS user_name,
+        u.role AS user_role
+    FROM audit_log al
+    LEFT JOIN users u ON u.id = al.user_id
+    ORDER BY al.created_at DESC
+    LIMIT 10
+");
+$recentActivity = $stmt->fetchAll(PDO::FETCH_ASSOC);
+foreach ($recentActivity as &$row) {
+    $row['entity_id'] = $row['entity_id'] !== null ? (int) $row['entity_id'] : null;
+}
+
 jsonSuccess([
     'tenders_by_status' => $tendersByStatus,
     'bids_per_tender' => $bidsPerTender,
     'supplier_registrations' => $supplierRegistrations,
     'evaluation_completion' => $evaluationCompletion,
     'summary' => $summary,
+    'recent_activity' => $recentActivity,
 ]);

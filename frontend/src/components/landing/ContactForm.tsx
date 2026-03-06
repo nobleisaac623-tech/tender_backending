@@ -198,11 +198,12 @@ function FormField({
   );
 }
 
-function inputClass(error?: string) {
+function inputClass(error?: string | { message?: string }) {
+  const errorMsg = typeof error === 'string' ? error : error?.message;
   return cn(
     'flex w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
     'focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-1',
-    error
+    errorMsg
       ? 'border-red-500 focus:border-red-500'
       : 'border-gray-300 focus:border-[#2563eb]'
   );

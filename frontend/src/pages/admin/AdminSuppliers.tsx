@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { suppliersService } from '@/services/suppliers';
 import { Button } from '@/components/ui/button';
@@ -7,36 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExportButton } from '@/components/ui/ExportButton';
-import { useAuth } from '@/context/AuthContext';
 import { toastSuccess } from '@/hooks/useToast';
 import { exportToExcel } from '@/utils/exportExcel';
-import { LogOut, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { StarRating } from '@/components/ui/StarRating';
 
 export function AdminSuppliers() {
-  const { user, logout } = useAuth();
+  const [searchParams] = useSearchParams();
+  const filterPending = searchParams.get('filter') === 'pending';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [blacklistedOnly, setBlacklistedOnly] = useState(false);
+  const statusFilter = filterPending ? 'pending' : undefined;
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'suppliers', page, search, blacklistedOnly],
-    queryFn: () => suppliersService.list({ page, per_page: 10, search: search || undefined, blacklisted_only: blacklistedOnly || undefined }),
+    queryKey: ['admin', 'suppliers', page, search, blacklistedOnly, statusFilter],
+    queryFn: () => suppliersService.list({ page, per_page: 10, search: search || undefined, blacklisted_only: blacklistedOnly || undefined, status: statusFilter }),
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">Admin</Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">Suppliers</h1>
           <ExportButton
@@ -124,7 +113,6 @@ export function AdminSuppliers() {
             <Button variant="outline" disabled={page * 10 >= data.total} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
         )}
-      </main>
     </div>
   );
 }

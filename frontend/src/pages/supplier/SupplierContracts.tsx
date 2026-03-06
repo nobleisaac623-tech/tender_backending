@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LogOut, Search, FileText } from 'lucide-react';
-import type { ContractListItem, ContractStatus } from '@/types';
+import type { ContractStatus } from '@/types';
 
 const statusConfig: Record<ContractStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-200 text-gray-800' },

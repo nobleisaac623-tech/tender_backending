@@ -12,17 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ExportButton } from '@/components/ui/ExportButton';
-import { useAuth } from '@/context/AuthContext';
 import { toastSuccess, toastError } from '@/hooks/useToast';
 import { CategoryBadge } from '@/components/tenders/CategoryBadge';
 import { TagChip } from '@/components/tenders/TagChip';
 import { exportToExcel, exportMultiSheet } from '@/utils/exportExcel';
-import { LogOut, ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 
 export function AdminTenderDetail() {
   const { id } = useParams<{ id: string }>();
   const tenderId = id ? parseInt(id, 10) : 0;
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: tender, isLoading } = useQuery({
@@ -165,19 +163,7 @@ export function AdminTenderDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">Admin</Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <Link to="/admin/tenders" className="mb-4 inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="mr-1 h-4 w-4" /> Back to Tenders
         </Link>
@@ -319,7 +305,6 @@ export function AdminTenderDetail() {
             )}
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

@@ -5,13 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractService } from '@/services/contractService';
-import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toastSuccess, toastError } from '@/hooks/useToast';
-import { LogOut, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 const schema = z
   .object({
@@ -31,7 +30,6 @@ const schema = z
 type FormData = z.infer<typeof schema>;
 
 export function AdminContractCreate() {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [milestones, setMilestones] = useState<Array<{ title: string; due_date: string }>>([]);
@@ -82,21 +80,7 @@ export function AdminContractCreate() {
     });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="font-semibold text-primary">
-            Admin
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">
+    <div>
         <Link to="/admin/contracts" className="mb-4 inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="mr-1 h-4 w-4" /> Back to Contracts
         </Link>
@@ -202,7 +186,6 @@ export function AdminContractCreate() {
             </form>
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

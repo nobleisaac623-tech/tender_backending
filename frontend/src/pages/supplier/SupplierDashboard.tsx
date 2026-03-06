@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tendersService } from '@/services/tenders';
 import { bidsService } from '@/services/bids';
+import { notificationsService } from '@/services/notifications';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +20,7 @@ export function SupplierDashboard() {
     queryKey: ['supplier', 'bids'],
     queryFn: () => bidsService.list({ per_page: 5 }),
   });
-  const { data: notifData } = useQuery({
+  useQuery({
     queryKey: ['supplier', 'notifications'],
     queryFn: () => notificationsService.list({ per_page: 5, unread_only: true }),
   });

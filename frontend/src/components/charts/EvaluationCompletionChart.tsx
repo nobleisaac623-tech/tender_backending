@@ -6,7 +6,7 @@ interface Props {
   isEmpty: boolean;
 }
 
-const COLORS = { completed: '#22c55e', pending: '#f97316' };
+const COLORS = { completed: '#10b981', pending: '#f59e0b' };
 
 export function EvaluationCompletionChart({ completed, pending, isEmpty }: Props) {
   const total = completed + pending;
@@ -23,38 +23,46 @@ export function EvaluationCompletionChart({ completed, pending, isEmpty }: Props
     );
   }
 
-  const renderLabel = ({ name, value }: { name: string; value: number }) => {
-    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-    return `${pct}%`;
-  };
+  const completedPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={60}
-          outerRadius={90}
-          paddingAngle={2}
-          dataKey="value"
-          label={renderLabel}
-          labelLine={false}
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip
-          contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-          formatter={(value: number) => {
-            const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-            return [`${value} (${pct}%)`, ''];
+    <div className="relative h-[280px] w-full">
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="45%"
+            innerRadius={60}
+            outerRadius={90}
+            paddingAngle={2}
+            dataKey="value"
+            labelLine={false}
+            animationDuration={800}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+          contentStyle={{
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          formatter={(value: number | undefined) => {
+            const v = value ?? 0;
+            const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+            return [`${v} (${pct}%)`, ''];
           }}
         />
         <Legend verticalAlign="bottom" height={36} />
       </PieChart>
     </ResponsiveContainer>
+      <div className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 text-2xl font-bold text-[#0f172a]">
+        {completedPct}%
+      </div>
+    </div>
   );
 }

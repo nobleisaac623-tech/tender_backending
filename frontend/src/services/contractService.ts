@@ -3,7 +3,6 @@ import type {
   Contract,
   ContractListItem,
   ContractMilestone,
-  ContractDocument,
   AwardedTenderForContract,
 } from '@/types';
 

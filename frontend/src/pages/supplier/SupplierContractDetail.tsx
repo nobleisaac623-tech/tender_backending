@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toastSuccess, toastError } from '@/hooks/useToast';
 import { LogOut, ArrowLeft, Check, Clock, Download } from 'lucide-react';
-import type { Contract, ContractStatus, MilestoneStatus } from '@/types';
+import type { ContractStatus, MilestoneStatus } from '@/types';
 
 const statusConfig: Record<ContractStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-200 text-gray-800' },

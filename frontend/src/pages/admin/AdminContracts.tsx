@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { contractService } from '@/services/contractService';
-import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { LogOut, Plus, Search, FileText } from 'lucide-react';
-import type { ContractListItem, ContractStatus } from '@/types';
+import { Plus, Search, FileText } from 'lucide-react';
+import type { ContractStatus } from '@/types';
 
 const statusConfig: Record<ContractStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-200 text-gray-800' },
@@ -27,7 +26,6 @@ function formatCurrency(value: number) {
 }
 
 export function AdminContracts() {
-  const { user, logout } = useAuth();
   const [statusTab, setStatusTab] = useState<string>('');
   const [search, setSearch] = useState('');
 
@@ -41,31 +39,7 @@ export function AdminContracts() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-4">
-          <div className="flex items-center gap-6">
-            <Link to="/admin/dashboard" className="font-semibold text-primary">
-              Admin
-            </Link>
-            <nav className="flex gap-4">
-              <Link to="/admin/tenders" className="text-sm text-gray-600 hover:text-primary">
-                Tenders
-              </Link>
-              <Link to="/admin/contracts" className="text-sm font-medium text-primary">
-                Contracts
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+    <div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Contracts</h1>
           <Link to="/admin/contracts/create">
@@ -160,7 +134,6 @@ export function AdminContracts() {
             </div>
           </Card>
         )}
-      </main>
     </div>
   );
 }

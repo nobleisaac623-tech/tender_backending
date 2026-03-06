@@ -18,11 +18,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#9ca3af',
-  published: '#2563eb',
-  closed: '#f97316',
-  evaluated: '#9333ea',
-  awarded: '#22c55e',
+  draft: '#94a3b8',
+  published: '#3b82f6',
+  closed: '#f59e0b',
+  evaluated: '#8b5cf6',
+  awarded: '#10b981',
 };
 
 interface DataItem {
@@ -66,11 +66,22 @@ export function TendersByStatusChart({ data, isEmpty }: Props) {
           allowDecimals={false}
         />
         <Tooltip
-          contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-          formatter={(value: number) => [value, 'Count']}
+          contentStyle={{
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          formatter={(value: number | undefined) => [value ?? 0, 'Count']}
           labelFormatter={(label) => label}
         />
-        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48} label={{ position: 'top', fontSize: 12 }}>
+        <Bar
+          dataKey="count"
+          radius={[6, 6, 0, 0]}
+          maxBarSize={48}
+          label={{ position: 'top', fontSize: 12 }}
+          animationDuration={800}
+        >
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] ?? '#6b7280'} />
           ))}
