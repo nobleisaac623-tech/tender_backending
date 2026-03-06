@@ -15,7 +15,7 @@ Options -Indexes
 # RewriteBase: path from document root to this backend folder (adjust if your URL differs)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /suppy_tender/backend/
+    RewriteBase /
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
