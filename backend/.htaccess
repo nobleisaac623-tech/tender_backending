@@ -1,0 +1,28 @@
+# Security: block direct access to uploads and config
+<FilesMatch "\.(env|ini|log|sql)$">
+    Require all denied
+</FilesMatch>
+
+# Deny directory listing
+Options -Indexes
+
+# CORS and JSON for API (actual CORS set in PHP)
+<IfModule mod_headers.c>
+    Header always set Content-Type "application/json" env=API
+</IfModule>
+
+# URL rewriting: .../api/xxx -> .../api/xxx.php
+# RewriteBase: path from document root to this backend folder (adjust if your URL differs)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /suppy_tender/backend/
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.*)$ api/$1.php [L]
+</IfModule>
+
+# Prevent access to uploads folder if inside webroot (prefer storing outside)
+<IfModule mod_rewrite.c>
+    RewriteRule ^uploads/ - [F,L]
+</IfModule>
