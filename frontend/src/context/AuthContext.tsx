@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { authService } from '@/services/auth';
+import { authService, type LoginResponse } from '@/services/auth';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -33,14 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await authService.login({ email, password });
-    if (!data || !('user' in data) || !data.user) {
-      throw new Error(
-        'Login failed: invalid server response. Check your API base URL (VITE_API_BASE_URL).'
-      );
+    const res: LoginResponse = await authService.login({ email, password });
+
+    // ✅ FIXED: Properly handle discriminated union response
+    if (res.success === false) {
+      throw new Error(res.message || 'Login failed');
     }
-    setState({ user: data.user, loading: false });
-    return data.user;
+
+    if (!res.data?.user) {
+      throw new Error('Login failed: malformed server response.');
+    }
+
+    const user = res.data.user;
+    setState({ user, loading: false });
+    return user;
   }, []);
 
   const register = useCallback(async (data: Parameters<typeof authService.register>[0]) => {

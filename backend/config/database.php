@@ -45,10 +45,14 @@ $options = [
 ];
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
+    // Using $GLOBALS ensures PDO is accessible across all include scopes
+    // This pattern works consistently with require_once in bootstrap.php
+    $GLOBALS['pdo'] = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit;
 }
+
+$pdo = $GLOBALS['pdo'];

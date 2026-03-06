@@ -44,44 +44,44 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ items, isLoading }: ActivityFeedProps) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-bold text-gray-900">Recent Activity</h3>
+    <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
+      <div className="mb-3 flex items-center justify-between sm:mb-4">
+        <h3 className="text-sm font-bold text-gray-900 sm:text-base">Recent Activity</h3>
         <Link
           to="/admin/audit-log"
-          className="text-sm font-medium text-primary hover:underline"
+          className="text-xs font-medium text-primary hover:underline sm:text-sm"
         >
           View All →
         </Link>
       </div>
       <div
-        className="max-h-[400px] overflow-y-auto pr-1"
+        className="max-h-[300px] overflow-y-auto pr-1 sm:max-h-[400px]"
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: '#cbd5e1 #f1f5f9',
         }}
       >
         {isLoading ? (
-          <div className="flex h-32 items-center justify-center text-sm text-gray-500">
+          <div className="flex h-24 items-center justify-center text-sm text-gray-500 sm:h-32">
             Loading…
           </div>
         ) : !items?.length ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Activity className="h-12 w-12 text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">No recent activity yet</p>
+          <div className="flex flex-col items-center justify-center py-8 text-center sm:py-12">
+            <Activity className="h-8 w-8 text-gray-300 sm:h-12 sm:w-12" />
+            <p className="mt-2 text-xs text-gray-500 sm:text-sm">No recent activity yet</p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-2 sm:space-y-3">
             {items.map((item, i) => {
               const color = actionColors[item.action] ?? '#64748b';
               return (
-                <li key={`${item.created_at}-${i}`} className="flex gap-3 text-sm">
+                <li key={`${item.created_at}-${i}`} className="flex gap-2 text-xs sm:text-sm">
                   <span
-                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                    className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full sm:mt-1.5 sm:h-2 sm:w-2"
                     style={{ backgroundColor: color }}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-gray-800">{getActivityDescription(item)}</p>
+                    <p className="text-gray-800 line-clamp-2">{getActivityDescription(item)}</p>
                     <p className="mt-0.5 text-xs text-gray-500">{timeAgo(item.created_at)}</p>
                   </div>
                 </li>

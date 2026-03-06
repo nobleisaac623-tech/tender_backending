@@ -8,7 +8,7 @@ import { blacklistService } from '@/services/blacklist';
 import { bidsService } from '@/services/bids';
 import { Button } from '@/components/ui/button';
 import { toastSuccess, toastError } from '@/hooks/useToast';
-import { ArrowLeft, Mail, Phone, MapPin, Globe, Download, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Download, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { StarRating } from '@/components/ui/StarRating';
 import { RatingBreakdown } from '@/components/ratings/RatingBreakdown';
 

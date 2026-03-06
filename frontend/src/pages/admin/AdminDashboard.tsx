@@ -130,35 +130,35 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner */}
+    <div className="space-y-6 lg:space-y-8">
+      {/* Welcome Banner - Mobile Optimized */}
       <Card className="overflow-hidden rounded-xl border-slate-100 shadow-sm" style={{ borderLeft: '4px solid #3b82f6' }}>
-        <CardContent className="flex flex-col gap-4 bg-gradient-to-r from-[#f0f9ff] to-white p-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+        <CardContent className="flex flex-col gap-4 bg-gradient-to-r from-[#f0f9ff] to-white p-4 md:p-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold text-gray-900 md:text-2xl truncate">
               {greeting}, {user?.name?.split(' ')[0] ?? 'Admin'}! 👋
             </h2>
-            <p className="mt-1 text-gray-600">
+            <p className="mt-1 text-sm text-gray-600 md:text-base">
               Here&apos;s what&apos;s happening with your procurement today.
             </p>
           </div>
-          <div className="flex flex-col items-start gap-1 md:items-end">
+          <div className="flex flex-col items-start gap-1 md:items-end lg:text-right">
             <p className="text-sm font-medium text-gray-700">
               {formatDate(time)}
             </p>
-            <p className="text-lg font-mono text-gray-800">
+            <p className="text-lg font-mono text-gray-800 md:text-xl">
               {time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </p>
             <span className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-3 w-3 md:h-4 md:w-4" />
               {time.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
             </span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stat Cards - Mobile: 1 col, Tablet: 2 cols, Desktop: 4 cols */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {statCardConfig.map((config) => {
           const value = statValues[config.key];
           const Icon = config.icon;
@@ -168,7 +168,7 @@ export function AdminDashboard() {
               key={config.key}
               to={config.link}
               className={cn(
-                'rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md',
+                'rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md sm:p-6',
                 showPulse ? 'border-[#f97316]' : ''
               )}
               style={{
@@ -177,13 +177,13 @@ export function AdminDashboard() {
                 borderWidth: 1,
               }}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#64748b]">{config.label}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-[#64748b] sm:text-sm">{config.label}</p>
                   {isLoading ? (
-                    <div className="mt-1 h-12 w-16 animate-pulse rounded bg-black/10" />
+                    <div className="mt-1 h-8 w-12 animate-pulse rounded bg-black/10 sm:h-12 sm:w-16" />
                   ) : (
-                    <p className="mt-1 text-4xl font-bold text-[#0f172a]">{value}</p>
+                    <p className="mt-1 text-2xl font-bold text-[#0f172a] sm:text-3xl lg:text-4xl">{value}</p>
                   )}
                   {config.trend && (
                     <p
@@ -197,21 +197,21 @@ export function AdminDashboard() {
                   )}
                 </div>
                 <span
-                  className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white shadow-lg"
+                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-lg sm:h-12 sm:w-12 lg:h-14 lg:w-14"
                   style={{ boxShadow: `0 4px 12px ${config.iconColor}33` }}
                 >
                   {showPulse && (
                     <span
-                      className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-orange-500 animate-pulse"
+                      className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-orange-500 animate-pulse sm:h-3 sm:w-3"
                       aria-hidden
                     />
                   )}
-                  <Icon className="h-7 w-7" style={{ color: config.iconColor }} />
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" style={{ color: config.iconColor }} />
                 </span>
               </div>
-              <div className="mt-4 border-t border-black/5 pt-3">
+              <div className="mt-3 border-t border-black/5 pt-2 sm:mt-4 sm:pt-3">
                 <span
-                  className="text-sm font-medium"
+                  className="text-xs font-medium sm:text-sm"
                   style={{ color: config.iconColor }}
                 >
                   {config.linkLabel} →
@@ -222,58 +222,62 @@ export function AdminDashboard() {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <Card className="rounded-xl border-slate-100 p-6 shadow-sm">
-        <h3 className="mb-4 text-base font-bold text-gray-900">Quick Actions</h3>
-        <div className="flex flex-wrap gap-3">
+      {/* Quick Actions - Mobile Optimized */}
+      <Card className="rounded-xl border-slate-100 p-4 shadow-sm sm:p-6">
+        <h3 className="mb-3 text-base font-bold text-gray-900 sm:mb-4">Quick Actions</h3>
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <Link
             to="/admin/tenders/create"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-[#3b82f6] bg-transparent px-4 py-2 text-sm font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6] hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#3b82f6] bg-transparent px-3 py-1.5 text-xs font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6] hover:text-white sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
           >
-            <Plus className="h-4 w-4" />
-            Create Tender
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Create Tender</span>
+            <span className="xs:hidden">Tender</span>
           </Link>
           <Link
             to="/admin/suppliers?filter=pending"
-            className="relative inline-flex items-center gap-2 rounded-full border-2 border-[#16a34a] bg-transparent px-4 py-2 text-sm font-medium text-[#16a34a] transition-colors hover:bg-[#16a34a] hover:text-white"
+            className="relative inline-flex items-center gap-1.5 rounded-full border-2 border-[#16a34a] bg-transparent px-3 py-1.5 text-xs font-medium text-[#16a34a] transition-colors hover:bg-[#16a34a] hover:text-white sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
           >
-            <UserCheck className="h-4 w-4" />
-            Approve Suppliers
+            <UserCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Approve Suppliers</span>
+            <span className="xs:hidden">Approve</span>
             {pendingCount > 0 && (
-              <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-bold text-white">
+              <span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-xs font-bold text-white sm:ml-1 sm:h-5 sm:min-w-[20px] sm:px-1.5">
                 {pendingCount}
               </span>
             )}
           </Link>
           <Link
             to="/admin/evaluators"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-[#8b5cf6] bg-transparent px-4 py-2 text-sm font-medium text-[#8b5cf6] transition-colors hover:bg-[#8b5cf6] hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#8b5cf6] bg-transparent px-3 py-1.5 text-xs font-medium text-[#8b5cf6] transition-colors hover:bg-[#8b5cf6] hover:text-white sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
           >
-            <UserPlus className="h-4 w-4" />
-            Add Evaluator
+            <UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Add Evaluator</span>
+            <span className="xs:hidden">Evaluator</span>
           </Link>
           <Link
             to="/admin/reports"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-[#f59e0b] bg-transparent px-4 py-2 text-sm font-medium text-[#f59e0b] transition-colors hover:bg-[#f59e0b] hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#f59e0b] bg-transparent px-3 py-1.5 text-xs font-medium text-[#f59e0b] transition-colors hover:bg-[#f59e0b] hover:text-white sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
           >
-            <BarChart2 className="h-4 w-4" />
-            View Reports
+            <BarChart2 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">View Reports</span>
+            <span className="xs:hidden">Reports</span>
           </Link>
         </div>
       </Card>
 
-      {/* Tenders by Status + Evaluation Donut */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="overflow-hidden rounded-xl border-slate-100 p-6 shadow-sm">
+      {/* Charts Section - Mobile Stacked */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden rounded-xl border-slate-100 p-4 shadow-sm sm:p-6">
           <CardHeader className="px-0 pb-2 pt-0">
             <CardTitle className="text-base font-bold text-gray-900">
               Tenders by Status
             </CardTitle>
-            <p className="text-sm text-gray-500">Count of tenders in each status</p>
+            <p className="text-xs text-gray-500 sm:text-sm">Count of tenders in each status</p>
           </CardHeader>
           <CardContent className="px-0">
             {isLoading ? (
-              <div className="h-[280px] animate-pulse rounded bg-gray-100" />
+              <div className="h-[200px] animate-pulse rounded bg-gray-100 sm:h-[280px]" />
             ) : (
               <TendersByStatusChart
                 data={analytics?.tenders_by_status ?? []}
@@ -282,18 +286,18 @@ export function AdminDashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="overflow-hidden rounded-xl border-slate-100 p-6 shadow-sm">
+        <Card className="overflow-hidden rounded-xl border-slate-100 p-4 shadow-sm sm:p-6">
           <CardHeader className="px-0 pb-2 pt-0">
             <CardTitle className="text-base font-bold text-gray-900">
               Evaluation Completion
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500 sm:text-sm">
               Closed tenders: evaluated vs pending review
             </p>
           </CardHeader>
           <CardContent className="px-0">
             {isLoading ? (
-              <div className="h-[280px] animate-pulse rounded bg-gray-100" />
+              <div className="h-[200px] animate-pulse rounded bg-gray-100 sm:h-[280px]" />
             ) : (
               <EvaluationCompletionChart
                 completed={evalCompletion?.completed ?? 0}
@@ -305,21 +309,21 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Bids per Tender (60%) + Recent Activity (40%) */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      {/* Bids Chart + Activity Feed - Mobile Stacked */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <Card className="overflow-hidden rounded-xl border-slate-100 p-6 shadow-sm">
+          <Card className="overflow-hidden rounded-xl border-slate-100 p-4 shadow-sm sm:p-6">
             <CardHeader className="px-0 pb-2 pt-0">
               <CardTitle className="text-base font-bold text-gray-900">
                 Bids per Tender (Top 8)
               </CardTitle>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs text-gray-500 sm:text-sm">
                 Number of bids received per tender
               </p>
             </CardHeader>
             <CardContent className="px-0">
               {isLoading ? (
-                <div className="h-[280px] animate-pulse rounded bg-gray-100" />
+                <div className="h-[200px] animate-pulse rounded bg-gray-100 sm:h-[280px]" />
               ) : (
                 <BidsPerTenderChart
                   data={analytics?.bids_per_tender ?? []}
@@ -338,18 +342,18 @@ export function AdminDashboard() {
       </div>
 
       {/* Supplier Registrations - full width */}
-      <Card className="overflow-hidden rounded-xl border-slate-100 p-6 shadow-sm">
+      <Card className="overflow-hidden rounded-xl border-slate-100 p-4 shadow-sm sm:p-6">
         <CardHeader className="px-0 pb-2 pt-0">
           <CardTitle className="text-base font-bold text-gray-900">
             Supplier Registrations
           </CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             New supplier sign-ups in the last 6 months
           </p>
         </CardHeader>
         <CardContent className="px-0">
           {isLoading ? (
-            <div className="h-[280px] animate-pulse rounded bg-gray-100" />
+            <div className="h-[200px] animate-pulse rounded bg-gray-100 sm:h-[280px]" />
           ) : (
             <SupplierRegistrationsChart
               data={analytics?.supplier_registrations ?? []}

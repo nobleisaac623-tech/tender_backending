@@ -151,7 +151,10 @@ export function AdminLayout() {
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto py-2">
+          <nav 
+            className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#475569 #0f172a' }}
+          >
             <NavSection title="Main Menu" items={mainNav} pathname={pathname} />
             <NavSection title="Reports" items={reportsNav} pathname={pathname} />
             <NavSection title="Settings" items={settingsNav} pathname={pathname} />
@@ -184,31 +187,31 @@ export function AdminLayout() {
       {/* Main content area */}
       <div className="min-h-screen md:ml-[260px]">
         {/* Top bar */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#e2e8f0] bg-white px-6">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e2e8f0] bg-white px-3 md:h-16 md:px-6">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
               type="button"
-              className="rounded p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+              className="rounded p-1.5 text-gray-600 hover:bg-gray-100 md:hidden md:p-2"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5 md:h-6 md:w-6" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">{pageTitle}</h1>
+            <h1 className="text-lg font-semibold text-gray-900 md:text-xl">{pageTitle}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <NotificationsDropdown />
             <span className="hidden text-sm text-gray-600 sm:inline">{user?.name}</span>
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white sm:hidden"
-              style={{ width: 32, height: 32 }}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white md:h-8 md:w-8 sm:hidden"
+              style={{ width: 28, height: 28 }}
             >
               {initials.slice(0, 1)}
             </span>
           </div>
         </header>
 
-        <main className="p-8">
+        <main className="p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

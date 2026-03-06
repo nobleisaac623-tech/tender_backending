@@ -86,6 +86,7 @@ export interface Bid {
   reference_number?: string;
   supplier_name?: string;
   supplier_email?: string;
+  company_name?: string;
   documents?: BidDocument[];
 }
 

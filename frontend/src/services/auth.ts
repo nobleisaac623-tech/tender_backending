@@ -19,10 +19,15 @@ export interface RegisterInput {
   tax_id?: string;
 }
 
+// ✅ FIXED: Proper discriminated union type for login responses
+export type LoginResponse =
+  | { success: true; data: { user: User; token?: string } }
+  | { success: false; message: string };
+
 export const authService = {
-  async login(data: LoginInput) {
-    const res = await api.post<{ success: boolean; data: { user: User; token?: string } }>('/auth/login', data);
-    return res.data.data;
+  async login(data: LoginInput): Promise<LoginResponse> {
+    const res = await api.post<LoginResponse>('/auth/login', data);
+    return res.data;
   },
   async register(data: RegisterInput) {
     const res = await api.post<{ success: boolean; data: { user_id: number; message: string } }>('/auth/register', data);
