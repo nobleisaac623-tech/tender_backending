@@ -20,6 +20,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = min(50, max(1, (int) ($_GET['per_page'] ?? 10)));
 $offset = ($page - 1) * $perPage;
 $tenderId = isset($_GET['tender_id']) ? (int) $_GET['tender_id'] : 0;
+$filterSupplierId = isset($_GET['supplier_id']) ? (int) $_GET['supplier_id'] : 0;
 
 if ($user['role'] === 'supplier') {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM bids WHERE supplier_id = ?");
@@ -40,6 +41,10 @@ if ($user['role'] === 'supplier') {
     if ($tenderId > 0) {
         $where .= ' AND b.tender_id = ?';
         $params[] = $tenderId;
+    }
+    if ($filterSupplierId > 0) {
+        $where .= ' AND b.supplier_id = ?';
+        $params[] = $filterSupplierId;
     }
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM bids b WHERE $where");
     $stmt->execute($params);

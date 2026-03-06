@@ -31,12 +31,20 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      <Toast open={open} onOpenChange={setOpen} variant={variant}>
+      {/* aria-live region so screen readers announce notifications */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {open && options.title ? `${options.title}. ${options.description ?? ''}` : ''}
+      </div>
+      <Toast open={open} onOpenChange={setOpen} variant={variant} role="status">
         {options.title && <ToastTitle>{options.title}</ToastTitle>}
         {options.description && <ToastDescription>{options.description}</ToastDescription>}
-        <ToastClose />
+        <ToastClose aria-label="Dismiss notification" />
       </Toast>
-      <ToastViewport />
+      <ToastViewport aria-label="Notifications" />
     </ToastProvider>
   );
 }

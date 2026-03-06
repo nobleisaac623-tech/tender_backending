@@ -1,0 +1,1 @@
+fix: resolve TypeScript error TS18048 supplier possibly undefined

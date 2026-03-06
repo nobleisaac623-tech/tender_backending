@@ -69,16 +69,42 @@ export function LoginPage() {
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} className="mt-1" />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+              <Label htmlFor="email">
+                Email <span aria-hidden="true" className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                aria-required="true"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : undefined}
+                {...register('email')}
+                className="mt-1"
+              />
+              {errors.email && (
+                <p id="email-error" role="alert" className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...register('password')} className="mt-1" />
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+              <Label htmlFor="password">
+                Password <span aria-hidden="true" className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                aria-required="true"
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? 'password-error' : undefined}
+                {...register('password')}
+                className="mt-1"
+              />
+              {errors.password && (
+                <p id="password-error" role="alert" className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}

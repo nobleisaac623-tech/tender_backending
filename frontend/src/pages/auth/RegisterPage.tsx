@@ -67,32 +67,75 @@ export function RegisterPage() {
             <CardDescription>Create your supplier account. Approval is required before you can bid.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
               <div className="space-y-4">
                 <p className="text-sm font-medium text-gray-700">Your details</p>
                 <div>
-                  <Label htmlFor="name">Contact name</Label>
-                  <Input id="name" {...register('name')} className="mt-1" />
-                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+                  <Label htmlFor="name">
+                    Contact name <span aria-hidden="true" className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    autoComplete="name"
+                    aria-required="true"
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? 'name-error' : undefined}
+                    {...register('name')}
+                    className="mt-1"
+                  />
+                  {errors.name && <p id="name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" {...register('email')} className="mt-1" />
-                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+                  <Label htmlFor="email">
+                    Email <span aria-hidden="true" className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    aria-required="true"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? 'reg-email-error' : undefined}
+                    {...register('email')}
+                    className="mt-1"
+                  />
+                  {errors.email && <p id="reg-email-error" role="alert" className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" {...register('password')} className="mt-1" />
-                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+                  <Label htmlFor="password">
+                    Password <span aria-hidden="true" className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    aria-required="true"
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? 'reg-password-error' : 'reg-password-hint'}
+                    {...register('password')}
+                    className="mt-1"
+                  />
+                  <p id="reg-password-hint" className="mt-1 text-xs text-gray-400">Minimum 8 characters</p>
+                  {errors.password && <p id="reg-password-error" role="alert" className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
                 </div>
               </div>
 
               <div className="space-y-4">
                 <p className="text-sm font-medium text-gray-700">Company</p>
                 <div>
-                  <Label htmlFor="company_name">Company name</Label>
-                  <Input id="company_name" {...register('company_name')} className="mt-1" />
-                  {errors.company_name && <p className="mt-1 text-sm text-red-600">{errors.company_name.message}</p>}
+                  <Label htmlFor="company_name">
+                    Company name <span aria-hidden="true" className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="company_name"
+                    autoComplete="organization"
+                    aria-required="true"
+                    aria-invalid={!!errors.company_name}
+                    aria-describedby={errors.company_name ? 'company-name-error' : undefined}
+                    {...register('company_name')}
+                    className="mt-1"
+                  />
+                  {errors.company_name && <p id="company-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.company_name.message}</p>}
                 </div>
               </div>
 

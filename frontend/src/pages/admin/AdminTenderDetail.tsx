@@ -60,8 +60,14 @@ export function AdminTenderDetail() {
   });
 
   const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editRef, setEditRef] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [editBudget, setEditBudget] = useState('');
+  const [editSubmissionDeadline, setEditSubmissionDeadline] = useState('');
+  const [editOpeningDate, setEditOpeningDate] = useState('');
   const [exportBidsLoading, setExportBidsLoading] = useState(false);
   const [exportEvalLoading, setExportEvalLoading] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -132,14 +138,31 @@ export function AdminTenderDetail() {
   };
 
   const startEdit = () => {
+    setEditTitle(tender?.title ?? '');
+    setEditRef(tender?.reference_number ?? '');
+    setEditDescription(tender?.description ?? '');
     setEditCategoryId(tender?.category_id ?? null);
     setEditTags(tender?.tags ?? []);
+    setEditBudget(tender?.budget != null ? String(tender.budget) : '');
+    setEditSubmissionDeadline(
+      tender?.submission_deadline ? tender.submission_deadline.replace(' ', 'T').slice(0, 16) : ''
+    );
+    setEditOpeningDate(tender?.opening_date ? tender.opening_date.replace(' ', 'T').slice(0, 16) : '');
     setEditing(true);
   };
 
   const updateMutation = useMutation({
-    mutationFn: (data: { category_id?: number; tags?: string[] }) =>
-      tendersService.update({ id: tenderId, ...data }),
+    mutationFn: (data: {
+      id: number;
+      title?: string;
+      reference_number?: string;
+      description?: string;
+      category_id?: number;
+      tags?: string[];
+      budget?: number;
+      submission_deadline?: string;
+      opening_date?: string;
+    }) => tendersService.update(data),
     onSuccess: () => {
       toastSuccess('Tender updated');
       queryClient.invalidateQueries({ queryKey: ['tender', tenderId] });
@@ -234,18 +257,77 @@ export function AdminTenderDetail() {
             </div>
             {editing ? (
               <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <Label>Title</Label>
+                    <Input
+                      className="mt-1"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Reference number</Label>
+                    <Input
+                      className="mt-1"
+                      value={editRef}
+                      onChange={(e) => setEditRef(e.target.value)}
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label>Category</Label>
-                  <select
-                    className="mt-1 w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    value={editCategoryId ?? ''}
-                    onChange={(e) => setEditCategoryId(parseInt(e.target.value, 10) || null)}
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <Label>Description</Label>
+                  <textarea
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    rows={3}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div>
+                    <Label>Category</Label>
+                    <select
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      value={editCategoryId ?? ''}
+                      onChange={(e) => setEditCategoryId(parseInt(e.target.value, 10) || null)}
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Budget</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="mt-1"
+                      value={editBudget}
+                      onChange={(e) => setEditBudget(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Submission deadline</Label>
+                    <Input
+                      type="datetime-local"
+                      className="mt-1"
+                      value={editSubmissionDeadline}
+                      onChange={(e) => setEditSubmissionDeadline(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div>
+                    <Label>Opening date (optional)</Label>
+                    <Input
+                      type="datetime-local"
+                      className="mt-1"
+                      value={editOpeningDate}
+                      onChange={(e) => setEditOpeningDate(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label>Tags</Label>
@@ -269,10 +351,30 @@ export function AdminTenderDetail() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => updateMutation.mutate({ category_id: editCategoryId ?? undefined, tags: editTags })} disabled={updateMutation.isPending}>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      updateMutation.mutate(
+                        {
+                          id: tenderId,
+                          title: editTitle.trim(),
+                          reference_number: editRef.trim(),
+                          description: editDescription.trim(),
+                          category_id: editCategoryId ?? undefined,
+                          tags: editTags,
+                          budget: editBudget !== '' ? Number(editBudget) : undefined,
+                          submission_deadline: editSubmissionDeadline || undefined,
+                          opening_date: editOpeningDate || undefined,
+                        },
+                      )
+                    }
+                    disabled={updateMutation.isPending}
+                  >
                     Save
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+                    Cancel
+                  </Button>
                 </div>
               </div>
             ) : null}

@@ -3,7 +3,7 @@ import type { Bid } from '@/types';
 import type { PaginatedResponse } from '@/types';
 
 export const bidsService = {
-  list(params?: { page?: number; per_page?: number; tender_id?: number }) {
+  list(params?: { page?: number; per_page?: number; tender_id?: number; supplier_id?: number }) {
     return api
       .get<{ success: boolean; data: PaginatedResponse<Bid> }>('/bids', { params })
       .then((r) => r.data.data);

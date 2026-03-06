@@ -13,6 +13,8 @@ export function NotificationsDropdown() {
   const { data: countData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsService.list({ per_page: 1, unread_only: true }),
+    refetchInterval: 60_000, // auto-refresh every 60 seconds
+    staleTime: 55_000,
   });
 
   const { data, isLoading } = useQuery({

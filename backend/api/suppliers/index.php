@@ -71,6 +71,11 @@ foreach ($rows as &$r) {
         'total_contracts_rated' => $count,
     ];
     unset($r['rating_avg'], $r['rating_count']);
+
+    // If profile has been approved, ensure status is treated as active
+    if ($r['status'] === 'pending' && $r['is_approved']) {
+        $r['status'] = 'active';
+    }
 }
 
 jsonSuccess(['items' => $rows, 'total' => $total, 'page' => $page, 'per_page' => $perPage]);
