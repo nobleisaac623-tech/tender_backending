@@ -1,27 +1,37 @@
-# PHP Backend Dockerfile - Railway Optimized
-FROM php:8.2-apache
+# PHP Backend Dockerfile - Railway Optimized (PHP-FPM + Nginx)
+FROM php:8.2-fpm
 
 # Install required PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Fix Apache MPM conflict - explicitly configure only mpm_prefork
-RUN echo "# Force only mpm_prefork" > /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "<IfModule mpm_prefork_module>" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "    StartServers             5" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "    MinSpareServers          5" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "    MaxSpareServers         10" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "    MaxRequestWorkers      150" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "    MaxConnectionsPerChild   0" >> /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    echo "</IfModule>" >> /etc/apache2/mods-enabled/mpm_prefork.conf
+# Install nginx
+RUN apt-get update && apt-get install -y nginx
 
-# Remove mpm_event to prevent conflict
-RUN a2dismod mpm_event 2>/dev/null || true
-
-# Enable required Apache modules
-RUN a2enmod rewrite headers
-
-# Set working directory
-WORKDIR /var/www/html
+# Create nginx configuration
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    root /var/www/html; \
+    index index.php index.html; \
+    \
+    location / { \
+        try_files $uri $uri/ /index.php?$query_string; \
+    } \
+    \
+    location ~ \.php$ { \
+        try_files $uri =404; \
+        fastcgi_split_path_info ^(.+\.php)(/.+)$; \
+        fastcgi_pass 127.0.0.1:9000; \
+        fastcgi_index index.php; \
+        include fastcgi_params; \
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
+        fastcgi_param PATH_INFO $fastcgi_path_info; \
+    } \
+    \
+    location ~ /\.ht { \
+        deny all; \
+    } \
+}' > /etc/nginx/sites-available/default
 
 # Copy application files
 COPY . /var/www/html/
@@ -33,15 +43,8 @@ RUN mkdir -p /var/www/html/uploads && \
 # Set environment variables
 ENV APP_ENV=production
 
-# Configure Apache for Railway
-# Set the ServerName to avoid warnings
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-# Allow .htaccess overrides
-RUN sed -i 's/<Directory \/var\/www\/html>/<Directory \/var\/www\/html>\n    AllowOverride All/' /etc/apache2/sites-available/000-default.conf
-
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start PHP-FPM and Nginx
+CMD service php8.2-fpm start && nginx -g 'daemon off;'
