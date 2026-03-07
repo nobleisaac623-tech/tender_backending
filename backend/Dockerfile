@@ -4,9 +4,12 @@ FROM php:8.2-apache
 # Install required PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Fix Apache MPM conflict - disable all MPMs then enable only prefork
-RUN a2dismod mpm_worker mpm_event mpm_prefork 2>/dev/null || true
-RUN a2enmod mpm_prefork rewrite headers
+# Fix Apache MPM conflict - remove conflicting mpm_event module
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf \
+    /etc/apache2/mods-available/mpm_event.load /etc/apache2/mods-available/mpm_event.conf 2>/dev/null || true
+
+# Enable required Apache modules
+RUN a2enmod rewrite headers
 
 # Set working directory
 WORKDIR /var/www/html
