@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-supplier_eval}
+      MYSQL_USER: ${DB_USER:-appuser}
+      MYSQL_PASSWORD: ${DB_PASS:-apppassword}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/1-database.sql
+      - ./database_migration_categories_tags.sql:/docker-entrypoint-initdb.d/2-categories.sql
+      - ./database_migration_contact_messages.sql:/docker-entrypoint-initdb.d/3-messages.sql
+      - ./database_migration_contracts.sql:/docker-entrypoint-initdb.d/4-contracts.sql
+      - ./database_migration_supplier_ratings.sql:/docker-entrypoint-initdb.d/5-ratings.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PHP Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-supplier_eval}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASS: ${DB_PASS:-apppassword}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-here-min-32-chars}
+      JWT_EXPIRY: ${JWT_EXPIRY:-28800}
+      MAIL_HOST: ${MAIL_HOST:-smtp.mailtrap.io}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@yourcompany.com}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@yourcompany.com}
+      UPLOAD_PATH: /var/www/html/uploads
+      APP_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/var/www/html/uploads
+    ports:
+      - "8081:80"
+
+  # React Frontend with Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    restart: always
+    environment:
+      - VITE_API_BASE_URL=/api
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_data:
+  backend_uploads:
+
+networks:
+  default:
+    name: supply_tender_network
