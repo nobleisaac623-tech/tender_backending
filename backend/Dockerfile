@@ -21,7 +21,7 @@ RUN echo 'server { \
     location ~ \.php$ { \
         try_files $uri =404; \
         fastcgi_split_path_info ^(.+\.php)(/.+)$; \
-        fastcgi_pass 127.0.0.1:9000; \
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock; \
         fastcgi_index index.php; \
         include fastcgi_params; \
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
@@ -39,6 +39,10 @@ COPY . /var/www/html/
 # Create uploads directory with proper permissions
 RUN mkdir -p /var/www/html/uploads && \
     chmod -R 755 /var/www/html/uploads
+
+# Create PHP-FPM socket directory
+RUN mkdir -p /var/run/php && \
+    chown -R www-data:www-data /var/run/php
 
 # Set environment variables
 ENV APP_ENV=production
