@@ -1,12 +1,18 @@
 # Railway Deployment Guide
 
-This guide covers deploying the PHP backend to Railway.
+This guide covers deploying the PHP backend to Railway with a Vercel frontend.
+
+## Architecture
+
+- **Frontend**: Vercel (React/TypeScript)
+- **Backend**: Railway (PHP 8.2 Apache)
+- **Database**: Railway (MySQL)
 
 ## Prerequisites
 
 1. [Railway Account](https://railway.app/)
-2. [Railway CLI](https://docs.railway.app/guides/cli) installed
-3. Git repository pushed to GitHub/GitLab
+2. [Vercel Account](https://vercel.com/)
+3. Git repository pushed to GitHub
 
 ## Deployment Steps
 
@@ -39,9 +45,11 @@ DB_PASS=${MYSQL_PASSWORD}
 JWT_SECRET=your-32-character-minimum-secret-key
 JWT_EXPIRY=28800
 APP_ENV=production
-FRONTEND_URL=https://your-frontend-app.railway.app
+FRONTEND_URL=https://your-vercel-frontend.vercel.app
 UPLOAD_PATH=/var/www/html/uploads
 ```
+
+**Note**: Replace `FRONTEND_URL` with your actual Vercel frontend URL after deployment.
 
 ### Step 4: Deploy Backend
 
@@ -79,7 +87,23 @@ mysql -h ${MYSQL_HOST} -u ${MYSQL_USER} -p ${MYSQL_DATABASE} < database.sql
 
 Or use a MySQL client like TablePlus or MySQL Workbench.
 
-### Step 6: Configure Custom Domain (Optional)
+### Step 6: Configure Vercel Frontend
+
+After deploying the backend to Railway, configure your Vercel frontend to connect to it:
+
+1. Go to your Vercel project dashboard
+2. Go to "Settings" → "Environment Variables"
+3. Add the following environment variable:
+
+```
+VITE_API_BASE_URL=https://your-backend-app.up.railway.app/api
+```
+
+**Note**: Replace the URL with your actual Railway backend URL (you can find it in the Railway dashboard after deployment).
+
+4. Redeploy the frontend for the changes to take effect
+
+### Step 7: Configure Custom Domain (Optional)
 
 1. Go to your backend service "Settings" → "Domains"
 2. Add your custom domain
@@ -137,6 +161,7 @@ Make sure `FRONTEND_URL` is set correctly in environment variables.
 - `backend/api/.htaccess` - Made RewriteBase dynamic
 - `backend/railway.json` - Railway deployment configuration
 - `backend/.env.railway` - Environment template
+- `frontend/.env.example` - Added production URL example for Vercel
 
 ## Quick Deploy Command
 
