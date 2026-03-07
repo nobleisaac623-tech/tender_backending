@@ -4,10 +4,13 @@ FROM php:8.2-fpm
 # Install required PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Install nginx
-RUN apt-get update && apt-get install -y nginx
+# Install nginx and supervisor
+RUN apt-get update && apt-get install -y nginx supervisor
 
-# Create simple nginx configuration
+# Configure PHP-FPM to listen on Unix socket
+RUN echo '[www]\nuser = www-data\ngroup = www-data\nlisten = /var/run/php/php8.2-fpm.sock\nlisten.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660\npm = dynamic\npm.max_children = 5\npm.start_servers = 2\npm.min_spare_servers = 1\npm.max_spare_servers = 3' > /usr/local/etc/php-fpm.d/zz-docker.conf
+
+# Create nginx configuration
 RUN echo 'server { \
     listen 80 default_server; \
     server_name _; \
