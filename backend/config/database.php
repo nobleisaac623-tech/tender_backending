@@ -2,6 +2,7 @@
 /**
  * Database connection using PDO.
  * Load .env from parent directory if present.
+ * Supports Railway environment variables directly.
  */
 
 declare(strict_types=1);
@@ -29,13 +30,16 @@ function loadEnv(string $path): void
     }
 }
 
+// Try to load .env file from various locations
 $envPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
 loadEnv($envPath);
 
-$host = $_ENV['DB_HOST'] ?? 'localhost';
-$name = $_ENV['DB_NAME'] ?? 'supplier_eval';
-$user = $_ENV['DB_USER'] ?? 'root';
-$pass = $_ENV['DB_PASS'] ?? '';
+// Also check for Railway-style variables and fall back to defaults
+// Railway provides: MYSQL_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD
+$host = $_ENV['DB_HOST'] ?? $_ENV['MYSQL_HOST'] ?? 'localhost';
+$name = $_ENV['DB_NAME'] ?? $_ENV['MYSQL_DATABASE'] ?? 'supplier_eval';
+$user = $_ENV['DB_USER'] ?? $_ENV['MYSQL_USER'] ?? 'root';
+$pass = $_ENV['DB_PASS'] ?? $_ENV['MYSQL_PASSWORD'] ?? '';
 $dsn  = "mysql:host=$host;dbname=$name;charset=utf8mb4";
 
 $options = [

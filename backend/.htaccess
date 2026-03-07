@@ -12,10 +12,9 @@ Options -Indexes
 </IfModule>
 
 # URL rewriting: .../api/xxx -> .../api/xxx.php
-# RewriteBase: path from document root to this backend folder (adjust if your URL differs)
+# Dynamic RewriteBase - works on any deployment path
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

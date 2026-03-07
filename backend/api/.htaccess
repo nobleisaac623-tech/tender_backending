@@ -1,9 +1,13 @@
 # Rewrite tenders/public -> tenders/public.php, etc.
-# RewriteBase: path to this api folder from document root
+# Dynamic RewriteBase for different deployment environments
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /suppy_tender/backend/api/
-
+    
+    # Auto-detect base path from request
+    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteRule ^api/(.*)$ api/$1.php [L]
+    
+    # Fallback: route all API requests to PHP files
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ $1.php [L]
