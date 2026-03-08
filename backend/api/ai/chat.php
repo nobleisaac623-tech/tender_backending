@@ -2,6 +2,7 @@
 require_once APP_ROOT . '/config/cors.php';
 require_once APP_ROOT . '/config/auth-middleware.php';
 require_once APP_ROOT . '/helpers/response.php';
+require_once APP_ROOT . '/helpers/validate.php';
 require_once APP_ROOT . '/helpers/ai.php';
 require_once APP_ROOT . '/helpers/audit.php';
 
@@ -16,7 +17,7 @@ $userId = (int) $currentUser['user_id'];
 checkAIRateLimit($userId, 'procureai_chat', 30);
 
 $data    = json_decode(file_get_contents('php://input'), true);
-$message = trim(sanitize($data['message'] ?? ''));
+$message = trim(sanitizeString($data['message'] ?? ''));
 $history = $data['history'] ?? [];
 
 if (!$message) jsonError('Message cannot be empty.');

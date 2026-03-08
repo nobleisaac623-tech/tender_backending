@@ -2,6 +2,7 @@
 require_once APP_ROOT . '/config/cors.php';
 require_once APP_ROOT . '/config/auth-middleware.php';
 require_once APP_ROOT . '/helpers/response.php';
+require_once APP_ROOT . '/helpers/validate.php';
 require_once APP_ROOT . '/helpers/ai.php';
 require_once APP_ROOT . '/helpers/audit.php';
 
@@ -9,10 +10,10 @@ requireRole(['admin']);
 checkAIRateLimit($currentUser['id'], 'tender_writer', 15);
 
 $data     = json_decode(file_get_contents('php://input'), true);
-$keywords = trim(sanitize($data['keywords'] ?? ''));
-$category = trim(sanitize($data['category'] ?? 'General'));
-$budget   = trim(sanitize($data['budget'] ?? 'Not specified'));
-$duration = trim(sanitize($data['duration'] ?? '12 months'));
+$keywords = trim(sanitizeString($data['keywords'] ?? ''));
+$category = trim(sanitizeString($data['category'] ?? 'General'));
+$budget   = trim(sanitizeString($data['budget'] ?? 'Not specified'));
+$duration = trim(sanitizeString($data['duration'] ?? '12 months'));
 
 if (strlen($keywords) < 5) {
     jsonError('Please describe what you need in at least a few words.');
