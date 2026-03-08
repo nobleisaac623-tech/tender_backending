@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toastError } from '@/hooks/useToast';
 import { Sparkles, Send, Trash2, Loader2, Copy, Check } from 'lucide-react';
+import MarkdownMessage from '@/components/ai/MarkdownMessage';
+import AIErrorBoundary from '@/components/ai/AIErrorBoundary';
 
 // Suggested questions by role
 const suggestedQuestions = {
@@ -101,14 +103,6 @@ export function ProcureAI() {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // Simple markdown parser
-  const parseMarkdown = (text: string) => {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/- (.*?)(?=\n|$)/g, '<li>$1</li>');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="max-w-3xl mx-auto p-4">
@@ -151,58 +145,63 @@ export function ProcureAI() {
         )}
 
         {/* Messages */}
-        <div className="space-y-4 mb-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+        <AIErrorBoundary>
+          <div className="space-y-4 mb-4">
+            {messages.map((msg, i) => (
               <div
-                className={`max-w-[85%] rounded-2xl p-4 ${
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-slate-200 shadow-sm'
-                }`}
+                key={i}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {msg.role === 'assistant' && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="text-blue-600" size={16} />
-                    <span className="text-sm font-medium text-slate-600">ProcureAI</span>
-                    {i > 0 && (
-                      <button
-                        onClick={() => handleCopy(msg.content, i)}
-                        className="ml-auto text-slate-400 hover:text-slate-600"
-                      >
-                        {copiedIndex === i ? <Check size={14} /> : <Copy size={14} />}
-                      </button>
-                    )}
-                  </div>
-                )}
                 <div
-                  className={`text-sm leading-relaxed ${
-                    msg.role === 'user' ? 'text-white' : 'text-slate-700'
+                  className={`max-w-[85%] rounded-2xl p-4 ${
+                    msg.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-slate-200 shadow-sm'
                   }`}
-                  dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.content) }}
-                />
-              </div>
-            </div>
-          ))}
-
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="text-blue-600 animate-pulse" size={16} />
-                  <span className="text-sm text-slate-500">ProcureAI is thinking...</span>
-                  <Loader2 className="animate-spin text-slate-400" size={14} />
+                >
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="text-blue-600" size={16} />
+                      <span className="text-sm font-medium text-slate-600">ProcureAI</span>
+                      {i > 0 && (
+                        <button
+                          onClick={() => handleCopy(msg.content, i)}
+                          className="ml-auto text-slate-400 hover:text-slate-600"
+                        >
+                          {copiedIndex === i ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {msg.role === 'assistant' ? (
+                    <div className="text-sm leading-relaxed text-slate-700">
+                      <MarkdownMessage content={msg.content} isUser={false} />
+                    </div>
+                  ) : (
+                    <div className="text-sm leading-relaxed text-white">
+                      {msg.content}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            ))}
 
-          <div ref={messagesEndRef} />
-        </div>
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-blue-600 animate-pulse" size={16} />
+                    <span className="text-sm text-slate-500">ProcureAI is thinking...</span>
+                    <Loader2 className="animate-spin text-slate-400" size={14} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </AIErrorBoundary>
 
         {/* Input */}
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-2">

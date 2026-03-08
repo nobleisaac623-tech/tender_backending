@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
+import MarkdownMessage from './MarkdownMessage';
+import AIErrorBoundary from './AIErrorBoundary';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -151,71 +153,83 @@ export default function FloatingProcureAI() {
           </div>
 
           {/* Messages */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '14px',
-            background: '#f8fafc',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}>
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                  alignItems: 'flex-start',
-                }}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-                  background: msg.role === 'assistant'
-                    ? 'linear-gradient(135deg, #2563eb, #7c3aed)'
-                    : '#e2e8f0',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '13px',
-                }}>
-                  {msg.role === 'assistant' ? '🤖' : '👤'}
-                </div>
+          <AIErrorBoundary>
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '14px',
+              background: '#f8fafc',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}>
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                    flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                    background: msg.role === 'assistant'
+                      ? 'linear-gradient(135deg, #2563eb, #7c3aed)'
+                      : '#e2e8f0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '13px',
+                  }}>
+                    {msg.role === 'assistant' ? '🤖' : '👤'}
+                  </div>
 
-                {/* Bubble */}
-                <div style={{
-                  maxWidth: '80%',
-                  padding: '10px 13px',
-                  borderRadius: msg.role === 'assistant' ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
-                  background: msg.role === 'assistant' ? 'white' : '#2563eb',
-                  color: msg.role === 'assistant' ? '#334155' : 'white',
-                  fontSize: '12px',
-                  lineHeight: '1.6',
-                  border: msg.role === 'assistant' ? '1px solid #e2e8f0' : 'none',
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {msg.content}
+                  {/* Bubble */}
+                  {msg.role === 'assistant' ? (
+                    <div style={{
+                      maxWidth: '80%',
+                      padding: '10px 13px',
+                      borderRadius: '4px 12px 12px 12px',
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '12px',
+                    }}>
+                      <MarkdownMessage content={msg.content} isUser={false} />
+                    </div>
+                  ) : (
+                    <div style={{
+                      maxWidth: '80%',
+                      padding: '10px 13px',
+                      borderRadius: '12px 4px 12px 12px',
+                      background: '#2563eb',
+                      color: 'white',
+                      fontSize: '12px',
+                      lineHeight: '1.6',
+                    }}>
+                      {msg.content}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Typing indicator */}
-            {isLoading && (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px',
-                }}>🤖</div>
-                <div style={{
-                  padding: '10px 14px', background: 'white', borderRadius: '4px 12px 12px 12px',
-                  border: '1px solid #e2e8f0', display: 'flex', gap: '4px', alignItems: 'center',
-                }}>
-                  {[0, 1, 2].map(i => (
-                    <span key={i} style={{
-                      width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8',
-                      display: 'inline-block',
-                      animation: `procureai-bounce 1.2s infinite ${i * 0.2}s`,
+              {/* Typing indicator */}
+              {isLoading && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px',
+                  }}>🤖</div>
+                  <div style={{
+                    padding: '10px 14px', background: 'white', borderRadius: '4px 12px 12px 12px',
+                    border: '1px solid #e2e8f0', display: 'flex', gap: '4px', alignItems: 'center',
+                  }}>
+                    {[0, 1, 2].map(i => (
+                      <span key={i} style={{
+                        width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8',
+                        display: 'inline-block',
+                        animation: `procureai-bounce 1.2s infinite ${i * 0.2}s`,
                     }} />
                   ))}
                 </div>
@@ -223,6 +237,7 @@ export default function FloatingProcureAI() {
             )}
             <div ref={messagesEndRef} />
           </div>
+          </AIErrorBoundary>
 
           {/* Input */}
           <div style={{
