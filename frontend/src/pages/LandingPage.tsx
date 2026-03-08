@@ -137,7 +137,7 @@ function ActiveTenders() {
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
-                      e.currentTarget.src = getFallbackImage(t.category_name);
+                      e.currentTarget.src = getFallbackImage({ id: t.id, title: t.title, category_name: t.category_name });
                     }}
                   />
                   <div

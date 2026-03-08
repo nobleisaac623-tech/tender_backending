@@ -112,16 +112,14 @@ export function getTenderImage(tender: { id: number; title?: string | null; cate
 
 /**
  * Returns a fallback image URL for when the main image fails to load
- * @param categoryName - Optional category name for context
+ * @param tender - The tender object with id, title, and category_name
  * @returns A generic fallback image URL
  */
-export function getFallbackImage(categoryName?: string | null): string {
-  // Use category-based fallback or default to business/technology
-  const fallbackQuery = categoryName?.toLowerCase().includes('it') || categoryName?.toLowerCase().includes('technology') 
-    ? 'technology' 
-    : 'business';
+export function getFallbackImage(tender: { id: number; title?: string | null; category_name?: string | null }): string {
+  const category = tender.category_name || 'business';
+  const title = tender.title || '';
   
-  return `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=60&w=800&sig=fallback&query=${fallbackQuery}`;
+  return `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(title)}`;
 }
 
 export const categoryAssets: Record<string, { image: string; color: string }> = {

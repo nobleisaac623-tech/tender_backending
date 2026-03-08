@@ -50,7 +50,7 @@ function TenderCard({ tender, onPublish, onClose, onDelete, isPublishing, isClos
   const navigate = useNavigate();
 
   const handleImageError = () => {
-    setImageSrc(getFallbackImage(tender.category_name));
+    setImageSrc(getFallbackImage({ id: tender.id, title: tender.title, category_name: tender.category_name }));
   };
 
   useEffect(() => {

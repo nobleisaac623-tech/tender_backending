@@ -114,7 +114,7 @@ export function AdminTenderDetail() {
 
   const handleImageError = () => {
     if (tender) {
-      setImageSrc(getFallbackImage(tender.category_name));
+      setImageSrc(getFallbackImage({ id: tender.id, title: tender.title, category_name: tender.category_name }));
     }
   };
 
