@@ -61,9 +61,11 @@ export function ProcureAI() {
 
     try {
       const response = await aiService.chat(userMessage, messages);
-      setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
+      const reply = response?.reply || 'No response received.';
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (e) {
       toastError(e instanceof Error ? e.message : 'ProcureAI is unavailable. Please try again.');
+      setMessages(prev => [...prev, { role: 'assistant', content: 'ProcureAI is temporarily unavailable. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +81,8 @@ export function ProcureAI() {
       
       aiService.chat(suggestion, messages)
         .then(response => {
-          setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
+          const reply = response?.reply || 'No response received.';
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
         })
         .catch(e => {
           toastError(e instanceof Error ? e.message : 'ProcureAI is unavailable.');
