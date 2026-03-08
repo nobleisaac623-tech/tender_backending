@@ -96,14 +96,17 @@ export function getTenderImage(tender: { id: number; title?: string | null; cate
   // Extract clean title (first two words after removing stop words)
   const cleanTitle = extractCleanTitle(tender.title ?? null);
   
-  // Build the base URL using stable photo-1 endpoint
-  let imageUrl = 'https://images.unsplash.com/photo-1';
+  // Use tender.id to generate a pseudo-random but consistent photo ID
+  // Different tenders will get different photos based on their id
+  const photoId = 1500 + (tender.id % 500); // Range: 1500-1999
   
-  // Add query parameter with category and cleanTitle
-  // Fallback: If cleanTitle is empty, use query=${category},business
+  // Build URL with unique photo for each tender
+  let imageUrl = `https://images.unsplash.com/photo-${photoId}`;
+  
+  // Add query parameters for image processing
   const query = cleanTitle && cleanTitle.length >= 2 
     ? `${category},${cleanTitle}` 
-    : `${category},business`;
+    : category;
   
   imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(query)}`;
   
@@ -119,7 +122,10 @@ export function getFallbackImage(tender: { id: number; title?: string | null; ca
   const category = tender.category_name || 'business';
   const title = tender.title || '';
   
-  return `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(title)}`;
+  // Use different photo ID for fallback
+  const photoId = 1600 + (tender.id % 400);
+  
+  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(title)}`;
 }
 
 export const categoryAssets: Record<string, { image: string; color: string }> = {
