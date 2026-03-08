@@ -50,7 +50,7 @@ foreach ($bidsPerTender as &$r) {
 
 // Supplier registrations per month (last 6 months)
 $stmt = $pdo->query("
-    SELECT DATE_FORMAT(created_at, '%b %Y') AS month, COUNT(*) AS count
+    SELECT DATE_FORMAT(MIN(created_at), '%b %Y') AS month, COUNT(*) AS count
     FROM users
     WHERE role = 'supplier' AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
     GROUP BY YEAR(created_at), MONTH(created_at)
