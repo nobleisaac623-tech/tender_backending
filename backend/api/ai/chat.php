@@ -1,9 +1,9 @@
 <?php
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/auth-middleware.php';
-require_once __DIR__ . '/../helpers/response.php';
-require_once __DIR__ . '/../helpers/ai.php';
-require_once __DIR__ . '/../helpers/audit.php';
+require_once APP_ROOT . '/config/cors.php';
+require_once APP_ROOT . '/config/auth-middleware.php';
+require_once APP_ROOT . '/helpers/response.php';
+require_once APP_ROOT . '/helpers/ai.php';
+require_once APP_ROOT . '/helpers/audit.php';
 
 requireAuth();
 checkAIRateLimit($currentUser['id'], 'procureai_chat', 30);

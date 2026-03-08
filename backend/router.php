@@ -12,6 +12,9 @@ ini_set('log_errors', '1');
 // Set base directory to /app for Railway
 $baseDir = '/app';
 
+// Define app root constant for use in required files
+define('APP_ROOT', $baseDir);
+
 // Include CORS - check if file exists first
 $corsFile = $baseDir . '/config/cors.php';
 if (file_exists($corsFile)) {
