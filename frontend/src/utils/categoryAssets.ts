@@ -50,6 +50,41 @@ export function extractKeyword(title: string | null | undefined): string | null 
 }
 
 /**
+ * Extracts the first two meaningful words from tender title (after removing stop words)
+ * @param title - The tender title
+ * @returns The first two words or null if too short
+ */
+export function extractTitleKeyword(title: string | null | undefined): string | null {
+  if (!title) return null;
+  
+  let keyword = title.toLowerCase().trim();
+  
+  // Remove stop words from the beginning
+  for (const stopWord of STOP_WORDS) {
+    if (keyword.startsWith(stopWord)) {
+      keyword = keyword.slice(stopWord.length).trim();
+      break;
+    }
+  }
+  
+  // Also check for stop words with different casing or trailing spaces
+  for (const stopWord of STOP_WORDS) {
+    const regex = new RegExp(`^${stopWord}\\s+`, 'i');
+    keyword = keyword.replace(regex, '');
+  }
+  
+  // Get words
+  const words = keyword.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return null;
+  
+  // Take first two words
+  const firstTwo = words.slice(0, 2).join(' ');
+  if (firstTwo.length < 3) return null;
+  
+  return firstTwo;
+}
+
+/**
  * Generates a dynamic Unsplash image URL based on tender title and category
  * @param tender - The tender object with id, title, and category_name
  * @returns A unique Unsplash image URL
@@ -60,22 +95,18 @@ export function getTenderImage(tender: { id: number; title?: string | null; cate
     ? tender.category_name.toLowerCase().replace(/[^a-z0-9]/g, '+').replace(/\s+/g, '+')
     : 'business';
   
-  // Extract keyword from title
-  const keyword = extractKeyword(tender.title ?? null);
+  // Extract title keyword (first two words after removing stop words)
+  const titleKeyword = extractTitleKeyword(tender.title ?? null);
   
-  // Build the base URL
+  // Build the base URL using stable photo-1 endpoint
   let imageUrl = 'https://images.unsplash.com/photo-1';
   
-  // Add category and keyword (if available)
-  if (keyword && keyword.length >= 3) {
-    imageUrl += `?${category},${encodeURIComponent(keyword)}`;
+  // Add query parameter with category and title keyword
+  if (titleKeyword && titleKeyword.length >= 3) {
+    imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(titleKeyword)}`;
   } else {
-    imageUrl += `?${category}`;
+    imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)}`;
   }
-  
-  // Add image parameters and seed with tender id for uniqueness
-  imageUrl += '&auto=format&fit=crop&w=800&q=80';
-  imageUrl += `&sig=${tender.id}`;
   
   return imageUrl;
 }
