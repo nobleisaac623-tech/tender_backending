@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/hooks/useToast';

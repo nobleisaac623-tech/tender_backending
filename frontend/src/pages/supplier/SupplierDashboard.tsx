@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StarRating } from '@/components/ui/StarRating';
 import {
   FileText,
   Send,
@@ -23,7 +22,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import type { Tender, Bid } from '@/types';
+import type { Bid } from '@/types';
 
 // ── Helper functions ────────────────────────────────────────────────────────────
 
@@ -125,7 +124,7 @@ function StatCard({
 
 // ── Tender Card Component ──────────────────────────────────────────────────────
 
-function TenderCard({ tender, hasBid, onBid }: { tender: any; hasBid: boolean; onBid?: () => void }) {
+function TenderCard({ tender, hasBid }: { tender: any; hasBid: boolean; onBid?: () => void }) {
   const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining(tender.submission_deadline));
 
   useEffect(() => {
@@ -346,9 +345,8 @@ export function SupplierDashboard() {
   const companyName = supplier.company_name || user?.name || 'Supplier';
   const supplierStatus = supplier.status || user?.status || 'active';
 
-  // Filter tenders with bids
+  // Get tender IDs that have bids
   const tenderIdsWithBids = new Set(bids.map((b: Bid) => b.tender_id));
-  const tendersWithBids = tenders.filter((t: Tender) => tenderIdsWithBids.has(t.id));
 
   // Calculate deadline alerts (tenders closing within 3 days without bids)
   const deadlineAlerts = tenders
