@@ -2,11 +2,11 @@ import axios, { type AxiosError } from 'axios';
 
 function resolveApiBaseUrl(): string {
   // Primary: Use VITE_API_URL from environment (set in Vercel)
-  const envUrl = (import.meta.env.VITE_API_URL ?? '').trim();
+  const envUrl = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/$/, '');
   if (envUrl) return envUrl;
 
   // Fallback: Use VITE_API_BASE_URL if set
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
   if (baseUrl) return baseUrl;
 
   // Development: Use localhost
