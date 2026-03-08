@@ -2,6 +2,7 @@
 const STOP_WORDS = [
   'supply of',
   'purchase of',
+  'consultancy for',
   'provision of',
   'request for',
   'procurement of',
@@ -9,7 +10,6 @@ const STOP_WORDS = [
   'contract for',
   'services for',
   'works for',
-  'supply of',
   'delivery of',
   'installation of',
 ];
@@ -90,10 +90,8 @@ export function extractCleanTitle(title: string | null | undefined): string | nu
  * @returns A unique Unsplash image URL
  */
 export function getTenderImage(tender: { id: number; title?: string | null; category_name?: string | null }): string {
-  // Get category for the URL (sanitize for URL)
-  const category = tender.category_name 
-    ? tender.category_name.toLowerCase().replace(/[^a-z0-9]/g, '+').replace(/\s+/g, '+')
-    : 'business';
+  // Get category - use directly from tender.category_name
+  const category = tender.category_name || 'business';
   
   // Extract clean title (first two words after removing stop words)
   const cleanTitle = extractCleanTitle(tender.title ?? null);
@@ -102,11 +100,12 @@ export function getTenderImage(tender: { id: number; title?: string | null; cate
   let imageUrl = 'https://images.unsplash.com/photo-1';
   
   // Add query parameter with category and cleanTitle
-  if (cleanTitle && cleanTitle.length >= 3) {
-    imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(cleanTitle)}`;
-  } else {
-    imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)}`;
-  }
+  // Fallback: If cleanTitle is empty, use query=${category},business
+  const query = cleanTitle && cleanTitle.length >= 2 
+    ? `${category},${cleanTitle}` 
+    : `${category},business`;
+  
+  imageUrl += `?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(query)}`;
   
   return imageUrl;
 }
