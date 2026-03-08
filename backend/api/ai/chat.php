@@ -5,8 +5,15 @@ require_once APP_ROOT . '/helpers/response.php';
 require_once APP_ROOT . '/helpers/ai.php';
 require_once APP_ROOT . '/helpers/audit.php';
 
-requireAuth();
-checkAIRateLimit($currentUser['id'], 'procureai_chat', 30);
+$currentUser = requireAuth();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(["success" => false, "reply" => "Authentication required."]);
+    exit;
+}
+
+$userId = (int) $currentUser['user_id'];
+checkAIRateLimit($userId, 'procureai_chat', 30);
 
 $data    = json_decode(file_get_contents('php://input'), true);
 $message = trim(sanitize($data['message'] ?? ''));
@@ -48,7 +55,7 @@ RESPONSE GUIDELINES:
 
 try {
     $reply = callGeminiChat($domainPrompt, $history, $message, 1000);
-    logAudit($currentUser['id'], 'ai_request', 'chat', null, 'feature: procureai_chat');
+    logAudit($userId, 'ai_request', 'chat', null, 'feature: procureai_chat');
     jsonSuccess(['reply' => $reply]);
 } catch (Exception $e) {
     jsonError('ProcureAI is temporarily unavailable. Please try again in a moment.');
