@@ -22,6 +22,7 @@ $body = getJsonBody();
 
 $supplierId = isset($body['supplier_id']) ? (int) $body['supplier_id'] : 0;
 $action = trim((string) ($body['action'] ?? ''));
+$reason = isset($body['reason']) ? trim((string) $body['reason']) : '';
 if ($supplierId <= 0 || !in_array($action, ['approve', 'suspend'], true)) {
     jsonError('Invalid supplier_id or action', 400);
 }
@@ -49,8 +50,25 @@ if ($action === 'approve') {
     auditLog($pdo, $user['user_id'], 'supplier_approved', 'users', $supplierId, $supplier['email']);
     jsonSuccess(['message' => 'Supplier approved']);
 } else {
-    $stmt = $pdo->prepare("UPDATE users SET status = 'suspended' WHERE id = ?");
-    $stmt->execute([$supplierId]);
+    $stmt = $pdo->prepare("UPDATE users SET status = 'suspended', suspend_reason = ?, suspended_at = NOW() WHERE id = ?");
+    $stmt->execute([$reason ?: 'No reason provided.', $supplierId]);
+    
+    // Send suspension email
+    $stmt = $pdo->prepare("SELECT email FROM users WHERE role = 'admin' AND status = 'active' LIMIT 1");
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+    $adminEmail = $admin['email'] ?? ($_ENV['ADMIN_EMAIL'] ?? '');
+    $contactMsg = $adminEmail ? " Please contact the administrator at $adminEmail." : " Please contact the administrator.";
+    
+    sendMail(
+        $supplier['email'],
+        'Your account has been suspended',
+        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been suspended.</p><p>Reason: ' . htmlspecialchars($reason ?: 'No reason provided.') . '</p><p>' . $contactMsg . '</p>',
+        'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.') . $contactMsg
+    );
+    
+    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+    $stmt->execute([$supplierId, 'Account suspended', 'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.')]);
+    
     auditLog($pdo, $user['user_id'], 'supplier_suspended', 'users', $supplierId, $supplier['email']);
     jsonSuccess(['message' => 'Supplier suspended']);
 }

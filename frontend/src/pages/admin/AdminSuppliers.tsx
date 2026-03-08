@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { suppliersService } from '@/services/suppliers';
+import { appealsService, type Appeal } from '@/services/appeals';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ExportButton } from '@/components/ui/ExportButton';
@@ -75,13 +76,14 @@ interface SupplierItem {
 }
 
 // ── Filter tabs ───────────────────────────────────────────────────────────────
-type FilterTab = 'all' | 'pending' | 'active' | 'suspended' | 'blacklisted';
+type FilterTab = 'all' | 'pending' | 'active' | 'suspended' | 'blacklisted' | 'appeals';
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all',         label: 'All' },
   { key: 'pending',     label: 'Pending' },
   { key: 'active',      label: 'Active' },
   { key: 'suspended',   label: 'Suspended' },
   { key: 'blacklisted', label: 'Blacklisted' },
+  { key: 'appeals',    label: 'Appeals' },
 ];
 
 // ── Inline double-confirm button ───────────────────────────────────────────────
@@ -140,6 +142,132 @@ function ConfirmButton({
     >
       {label}
     </Button>
+  );
+}
+
+// ── Appeal Card component ─────────────────────────────────────────────────────
+function AppealCard({
+  appeal,
+  onReview,
+  onResolve,
+  isUpdating,
+}: {
+  appeal: Appeal;
+  onReview: () => void;
+  onResolve: (liftSuspension: boolean) => void;
+  isUpdating: boolean;
+}) {
+  const navigate = useNavigate();
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [liftSuspension, setLiftSuspension] = useState(false);
+
+  const formatDate = (d?: string) =>
+    d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+  const statusColors = {
+    pending: 'bg-amber-50 text-amber-800 border-amber-200',
+    reviewed: 'bg-blue-50 text-blue-800 border-blue-200',
+    resolved: 'bg-green-50 text-green-800 border-green-200',
+  };
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-gray-900">{appeal.supplier_name || appeal.supplier_email}</p>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium border ${statusColors[appeal.status]}`}>
+              {appeal.status.charAt(0).toUpperCase() + appeal.status.slice(1)}
+            </span>
+          </div>
+          <p className="text-sm text-gray-500">{appeal.supplier_email}</p>
+          <p className="mt-2 text-sm text-gray-700">{appeal.message}</p>
+          <p className="mt-2 text-xs text-gray-400">Submitted: {formatDate(appeal.created_at)}</p>
+          
+          {appeal.supplier_id && (
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/suppliers/${appeal.supplier_id}`)}
+              className="mt-2 text-sm text-blue-600 hover:underline"
+            >
+              View Supplier Profile →
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {appeal.status === 'pending' && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onReview}
+                disabled={isUpdating}
+              >
+                Mark Reviewed
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowResolveModal(true)}
+                disabled={isUpdating}
+              >
+                Resolve
+              </Button>
+            </>
+          )}
+          {appeal.status === 'reviewed' && (
+            <Button
+              size="sm"
+              onClick={() => setShowResolveModal(true)}
+              disabled={isUpdating}
+            >
+              Resolve
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Resolve Modal */}
+      {showResolveModal && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="font-medium text-gray-900">Resolve Appeal</p>
+          <p className="mt-1 text-sm text-gray-600">
+            Would you like to also lift the suspension/blacklist and reactivate this supplier's account?
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`lift-${appeal.id}`}
+              checked={liftSuspension}
+              onChange={(e) => setLiftSuspension(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor={`lift-${appeal.id}`} className="text-sm text-gray-700">
+              Lift suspension & reactivate account
+            </label>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                onResolve(liftSuspension);
+                setShowResolveModal(false);
+              }}
+              disabled={isUpdating}
+            >
+              Confirm Resolution
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowResolveModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -389,6 +517,26 @@ export function AdminSuppliers() {
     onError: (e) => toastError(e instanceof Error ? e.message : 'Failed'),
   });
 
+  // Appeals query - only when on appeals tab
+  const { data: appealsData, isLoading: isLoadingAppeals } = useQuery({
+    queryKey: ['admin', 'appeals'],
+    queryFn: () => appealsService.list(),
+    staleTime: 30_000,
+    enabled: tabParam === 'appeals',
+  });
+
+  const updateAppealMutation = useMutation({
+    mutationFn: ({ appealId, action, adminNotes, liftSuspension }: { appealId: number; action: 'review' | 'resolve'; adminNotes?: string; liftSuspension?: boolean }) =>
+      appealsService.update(appealId, action, adminNotes, liftSuspension),
+    onSuccess: () => {
+      toastSuccess('Appeal updated');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'appeals'] });
+    },
+    onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to update appeal'),
+  });
+
+  const appeals: Appeal[] = appealsData?.appeals ?? [];
+
   const suppliers: SupplierItem[] = (data?.items as SupplierItem[]) ?? [];
   const total = data?.total ?? 0;
 
@@ -515,6 +663,35 @@ export function AdminSuppliers() {
             <button type="button" className="mt-2 text-sm text-blue-600 hover:underline" onClick={clearFilters}>
               Clear filters to see all suppliers
             </button>
+          )}
+        </div>
+      )}
+
+      {/* Appeals Tab */}
+      {tabParam === 'appeals' && (
+        <div className="mt-6">
+          {isLoadingAppeals ? (
+            <div className="py-8 text-center text-gray-500">Loading appeals...</div>
+          ) : appeals.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-white/50 py-12 text-center">
+              <p className="text-gray-500">No appeals found.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {appeals.map((appeal) => (
+                <AppealCard
+                  key={appeal.id}
+                  appeal={appeal}
+                  onReview={() => updateAppealMutation.mutate({ appealId: appeal.id, action: 'review' })}
+                  onResolve={(liftSuspension) => updateAppealMutation.mutate({ 
+                    appealId: appeal.id, 
+                    action: 'resolve',
+                    liftSuspension 
+                  })}
+                  isUpdating={updateAppealMutation.isPending}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -51,7 +51,28 @@ export function LoginPage() {
     try {
       const user = await login(data.email, data.password);
       navigate(from ?? getDashboardPath(user.role), { replace: true });
-    } catch (e) {
+    } catch (e: any) {
+      // Check for specific account status error codes
+      const errorCode = e?.response?.data?.error_code;
+      const details = e?.response?.data?.details;
+      
+      if (errorCode === 'ACCOUNT_SUSPENDED' || errorCode === 'ACCOUNT_BLACKLISTED' || errorCode === 'ACCOUNT_PENDING') {
+        // Store details in sessionStorage for the account status page
+        sessionStorage.setItem('account_status', JSON.stringify({
+          ...details,
+          email: data.email
+        }));
+        
+        // Redirect to appropriate page based on error code
+        const routeMap: Record<string, string> = {
+          'ACCOUNT_SUSPENDED': '/account-suspended',
+          'ACCOUNT_BLACKLISTED': '/account-blacklisted',
+          'ACCOUNT_PENDING': '/account-pending'
+        };
+        navigate(routeMap[errorCode] || '/account-suspended');
+        return;
+      }
+      
       toastError(e instanceof Error ? e.message : 'Login failed');
     } finally {
       setLoading(false);

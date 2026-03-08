@@ -34,7 +34,8 @@ if ((int) $stmt->fetchColumn() >= 5) {
     jsonError('Too many login attempts. Try again later.', 429);
 }
 
-$stmt = $pdo->prepare("SELECT id, name, email, password, role, status FROM users WHERE email = ?");
+// Fetch user with additional fields for status checks
+$stmt = $pdo->prepare("SELECT id, name, email, password, role, status, suspend_reason, suspended_at FROM users WHERE email = ?");
 $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -44,33 +45,53 @@ if (!$user || !password_verify($password, $user['password'])) {
     jsonError('Invalid email or password', 401);
 }
 
-if ($user['status'] === 'suspended') {
-    $msg = 'Your account has been suspended. Please contact the administrator.';
-    if ($user['role'] === 'supplier') {
-        $bl = getActiveBlacklist($pdo, (int) $user['id']);
-        if ($bl) {
-            $stmt = $pdo->query("SELECT email FROM users WHERE role = 'admin' AND status = 'active' LIMIT 1");
-            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-            $adminEmail = $admin['email'] ?? ($_ENV['ADMIN_EMAIL'] ?? '');
-            $msg = $adminEmail
-                ? "Your account has been suspended. Please contact the administrator at $adminEmail."
-                : 'Your account has been suspended. Please contact the administrator.';
-        }
-    }
-    jsonError($msg, 403);
-}
-if ($user['status'] === 'pending' && $user['role'] === 'supplier') {
-    jsonError('Your account is pending approval', 403);
-}
+// Check account status BEFORE issuing JWT - only for suppliers
+if ($user['role'] === 'supplier') {
 
-if ($user['role'] === 'supplier' && isSupplierBlacklisted($pdo, (int) $user['id'])) {
-    $stmt = $pdo->query("SELECT email FROM users WHERE role = 'admin' AND status = 'active' LIMIT 1");
-    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-    $adminEmail = $admin['email'] ?? ($_ENV['ADMIN_EMAIL'] ?? '');
-    $msg = $adminEmail
-        ? "Your account has been suspended. Please contact the administrator at $adminEmail."
-        : 'Your account has been suspended. Please contact the administrator.';
-    jsonError($msg, 403);
+    // Check if suspended
+    if ($user['status'] === 'suspended') {
+        jsonResponse([
+            'success' => false,
+            'error_code' => 'ACCOUNT_SUSPENDED',
+            'message' => 'Your account has been suspended.',
+            'details' => [
+                'status' => 'suspended',
+                'reason' => $user['suspend_reason'] ?? 'No reason provided.',
+                'suspended_at' => $user['suspended_at'] ?? null,
+                'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+            ]
+        ], 403);
+    }
+
+    // Check if blacklisted
+    $blacklist = getActiveBlacklist($pdo, (int) $user['id']);
+    if ($blacklist) {
+        jsonResponse([
+            'success' => false,
+            'error_code' => 'ACCOUNT_BLACKLISTED',
+            'message' => 'Your account has been permanently blocked.',
+            'details' => [
+                'status' => 'blacklisted',
+                'reason' => $blacklist['reason'] ?? 'No reason provided.',
+                'blacklisted_at' => $blacklist['blacklisted_at'] ?? null,
+                'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+            ]
+        ], 403);
+    }
+
+    // Check if pending approval
+    if ($user['status'] === 'pending') {
+        jsonResponse([
+            'success' => false,
+            'error_code' => 'ACCOUNT_PENDING',
+            'message' => 'Your account is awaiting approval.',
+            'details' => [
+                'status' => 'pending',
+                'reason' => 'Our team is reviewing your registration.',
+                'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+            ]
+        ], 403);
+    }
 }
 
 $payload = [
