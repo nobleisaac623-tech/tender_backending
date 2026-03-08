@@ -54,14 +54,14 @@ export function extractKeyword(title: string | null | undefined): string | null 
  * @param tender - The tender object with id, title, and category_name
  * @returns A unique Unsplash image URL
  */
-export function getTenderImage(tender: { id: number; title: string | null; category_name: string | null }): string {
+export function getTenderImage(tender: { id: number; title?: string | null; category_name?: string | null }): string {
   // Get category for the URL (sanitize for URL)
   const category = tender.category_name 
     ? tender.category_name.toLowerCase().replace(/[^a-z0-9]/g, '+').replace(/\s+/g, '+')
     : 'business';
   
   // Extract keyword from title
-  const keyword = extractKeyword(tender.title);
+  const keyword = extractKeyword(tender.title ?? null);
   
   // Build the base URL
   let imageUrl = 'https://images.unsplash.com/photo-1';
