@@ -21,7 +21,14 @@ export function AdminReports() {
 
   useEffect(() => {
     api.get('/reports/summary.php')
-      .then(res => setData(res.data.data))
+      .then(res => {
+        if (res.data.success) {
+          setData(res.data.data);
+        }
+      })
+      .catch(() => {
+        // API not available yet - will show loading state
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,7 +44,7 @@ export function AdminReports() {
     </div>
   );
 
-  const { tenders, bids, suppliers, contracts } = data;
+  const { tenders, bids, suppliers, contracts } = data || { tenders: {}, bids: {}, suppliers: {}, contracts: {} };
 
   // ── KPI cards ─────────────────────────────────────────────
   const kpis = [

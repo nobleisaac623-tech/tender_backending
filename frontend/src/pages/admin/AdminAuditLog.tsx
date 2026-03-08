@@ -91,19 +91,29 @@ export function AdminAuditLog() {
         ...(dateTo   && { date_to: dateTo }),
       });
       const res = await api.get(`/audit/list.php?${params}`);
-      setLogs(res.data.data.logs);
-      setTotal(res.data.data.total);
-      setPages(res.data.data.pages);
-      setActions(res.data.data.actions);
-      setEntities(res.data.data.entities);
+      if (res.data.success) {
+        setLogs(res.data.data.logs);
+        setTotal(res.data.data.total);
+        setPages(res.data.data.pages);
+        setActions(res.data.data.actions);
+        setEntities(res.data.data.entities);
+      }
+    } catch {
+      // API not available - will show empty state
     } finally {
       setLoading(false);
     }
   }, [page, search, action, entity, dateFrom, dateTo]);
 
   const fetchStats = async () => {
-    const res = await api.get('/audit/stats.php');
-    setStats(res.data.data);
+    try {
+      const res = await api.get('/audit/stats.php');
+      if (res.data.success) {
+        setStats(res.data.data);
+      }
+    } catch {
+      // API not available
+    }
   };
 
   useEffect(() => { fetchStats(); }, []);
