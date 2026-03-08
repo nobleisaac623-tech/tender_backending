@@ -49,7 +49,7 @@ export default function FloatingProcureAI() {
     setIsLoading(true);
 
     try {
-      const res = await api.post('/ai/chat.php', {
+      const res = await api.post('/ai/chat', {
         message: text,
         history: updatedMessages.slice(1, -1).slice(-6).map(m => ({
           role: m.role,
@@ -58,14 +58,16 @@ export default function FloatingProcureAI() {
       });
 
       if (res.data.success) {
-        setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.reply }]);
+        const reply = res.data.data?.reply ?? res.data.data ?? 'No response received.';
+        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       } else {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: 'ProcureAI is temporarily unavailable. Please try again in a moment.',
+          content: res.data.message || 'ProcureAI is temporarily unavailable. Please try again in a moment.',
         }]);
       }
-    } catch {
+    } catch (err) {
+      console.error('AI chat error:', err);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'ProcureAI is temporarily unavailable. Please try again in a moment.',
