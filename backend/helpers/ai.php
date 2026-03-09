@@ -44,43 +44,42 @@ function callGemini(string $domainPrompt, string $userMessage, int $maxTokens = 
         throw new Exception('ProcureAI is not configured. Please add your Gemini API key to the environment variables.');
     }
 
-    // Combine identity + domain-specific instructions
-    $fullSystem = getProcureAIIdentity() . "\n\n" . $domainPrompt;
+    // Combine identity + domain-specific instructions into the message
+    $fullPrompt = getProcureAIIdentity() . "\n\n" . $domainPrompt . "\n\nUser request:\n" . $userMessage;
 
-    $payload = [
-        'system_instruction' => [
-            'parts' => [['text' => $fullSystem]]
-        ],
+    $body = json_encode([
         'contents' => [
-            ['role' => 'user', 'parts' => [['text' => $userMessage]]]
+            ['role' => 'user', 'parts' => [['text' => $fullPrompt]]]
         ],
         'generationConfig' => [
             'maxOutputTokens' => $maxTokens,
-            'temperature'     => 0.7,
+            'temperature' => 0.7,
         ]
-    ];
+    ]);
 
     $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_TIMEOUT        => 30,
-    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error    = curl_error($ch);
     curl_close($ch);
 
+    // Log for debugging
+    error_log('Gemini HTTP code: ' . $httpCode);
+    error_log('Gemini response: ' . $response);
+
     if ($error) throw new Exception('ProcureAI request failed: ' . $error);
-    if ($httpCode !== 200) throw new Exception('ProcureAI API error: HTTP ' . $httpCode);
+    if ($httpCode !== 200) throw new Exception('ProcureAI API error: HTTP ' . $httpCode . ' - ' . $response);
 
     $data = json_decode($response, true);
 
     if (isset($data['error'])) {
-        throw new Exception('ProcureAI error: ' . $data['error']['message']);
+        throw new Exception('Gemini error: ' . $data['error']['message']);
     }
 
     if (empty($data['candidates'])) {
@@ -104,48 +103,76 @@ function callGeminiChat(string $domainPrompt, array $history, string $userMessag
         throw new Exception('ProcureAI is not configured. Please add your Gemini API key to the environment variables.');
     }
 
-    $fullSystem = getProcureAIIdentity() . "\n\n" . $domainPrompt;
-
-    // Build conversation history (max last 10 messages to save tokens)
-    $recentHistory = array_slice($history, -10);
+    // Combine identity + domain instructions as system prompt (prepended to first message)
+    $systemPrompt = getProcureAIIdentity() . "\n\n" . $domainPrompt;
+    
+    // Build conversation history in Gemini format
     $contents = [];
-    foreach ($recentHistory as $msg) {
+    
+    // Add system context as first user message if history is empty
+    if (empty($history)) {
         $contents[] = [
-            'role'  => $msg['role'] === 'assistant' ? 'model' : 'user',
-            'parts' => [['text' => $msg['content']]]
+            'role' => 'user',
+            'parts' => [['text' => $systemPrompt . "\n\nUser: " . $userMessage]]
+        ];
+    } else {
+        // Add system prompt as context
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [['text' => $systemPrompt]]
+        ];
+        
+        // Add history (max last 10 messages)
+        $recentHistory = array_slice($history, -10);
+        foreach ($recentHistory as $msg) {
+            if (isset($msg['role']) && isset($msg['content'])) {
+                $role = $msg['role'] === 'assistant' ? 'model' : 'user';
+                $contents[] = [
+                    'role' => $role,
+                    'parts' => [['text' => $msg['content']]]
+                ];
+            }
+        }
+        
+        // Add current message
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [['text' => $userMessage]]
         ];
     }
-    $contents[] = ['role' => 'user', 'parts' => [['text' => $userMessage]]];
 
-    $payload = [
-        'system_instruction' => ['parts' => [['text' => $fullSystem]]],
-        'contents'           => $contents,
-        'generationConfig'   => [
+    $body = json_encode([
+        'contents' => $contents,
+        'generationConfig' => [
             'maxOutputTokens' => $maxTokens,
-            'temperature'     => 0.8,
+            'temperature' => 0.8,
         ]
-    ];
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_TIMEOUT        => 30,
     ]);
 
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error    = curl_error($ch);
     curl_close($ch);
 
+    // Log for debugging
+    error_log('Gemini HTTP code: ' . $httpCode);
+    error_log('Gemini response: ' . $response);
+
     if ($error) throw new Exception('ProcureAI chat failed: ' . $error);
+    if ($httpCode !== 200) throw new Exception('ProcureAI API error: HTTP ' . $httpCode . ' - ' . $response);
 
     $data = json_decode($response, true);
     
     // Check for Gemini API error
     if (isset($data['error'])) {
-        throw new Exception('Gemini API error: ' . $data['error']['message']);
+        throw new Exception('Gemini error: ' . $data['error']['message']);
     }
     
     // Check for candidates
