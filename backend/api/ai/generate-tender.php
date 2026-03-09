@@ -30,7 +30,8 @@ checkAIRateLimit($userId, $pdo);
 $domainPrompt =
     "You are helping an admin write a professional tender document for a Ghana government or private sector procurement. " .
     "Follow GPPA (Ghana Public Procurement Authority) best practices. " .
-    "Respond with valid JSON only — no markdown, no extra text.";
+    "You MUST respond with a single top-level JSON object and these exact keys: title, description, criteria, requirements, tags. " .
+    "Do not nest the result under any other key. Respond with valid JSON only — no markdown, no extra text.";
 
 $userMessage =
     "Generate a professional tender document based on:\n" .
@@ -63,6 +64,23 @@ try {
         'name' => $user['name'] ?? 'there',
     ], $pdo);
     $parsed = ai_extract_json($raw);
+
+    // Normalize common model/legacy shapes to a top-level tender draft object.
+    if (isset($parsed['data']) && is_array($parsed['data'])) {
+        $parsed = $parsed['data'];
+    }
+    if (isset($parsed['reply']) && is_string($parsed['reply'])) {
+        $maybe = json_decode($parsed['reply'], true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($maybe)) {
+            $parsed = $maybe;
+        }
+    }
+
+    $title = isset($parsed['title']) ? trim((string)$parsed['title']) : '';
+    $description = isset($parsed['description']) ? trim((string)$parsed['description']) : '';
+    if ($title === '' || $description === '') {
+        throw new Exception('Incomplete tender draft from AI');
+    }
 
     if ($pdo instanceof PDO) {
         auditLog($pdo, $userId, 'ai_request', 'tender', null, 'feature: tender_writer');
