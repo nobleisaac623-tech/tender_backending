@@ -50,6 +50,35 @@ export default function FloatingProcureAI() {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 100);
   }, [isOpen]);
 
+  const handleAIDraftAction = (action: { action?: string; data?: Record<string, unknown>; message?: string } | null) => {
+    if (!action || !action.action || !action.data) {
+      console.error('Invalid draft action:', action);
+      return;
+    }
+
+    if (action.action === 'draft_tender') {
+      if (!action.data.title) {
+        console.error('Draft tender missing title:', action.data);
+        return;
+      }
+      setDraftModal({
+        action: action.action,
+        data: action.data,
+        message: action.message || 'AI has generated a tender draft for you.',
+      });
+    } else if (action.action === 'draft_bid') {
+      if (!action.data.tender_id) {
+        console.error('Draft bid missing tender_id:', action.data);
+        return;
+      }
+      setDraftModal({
+        action: action.action,
+        data: action.data,
+        message: action.message || 'AI has generated a bid draft for you.',
+      });
+    }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -81,11 +110,7 @@ export default function FloatingProcureAI() {
         
         // Check for action from AI
         if (res.data.action && res.data.action.action) {
-          setDraftModal({
-            action: res.data.action.action,
-            data: res.data.action.data || {},
-            message: res.data.action.message || 'AI has generated a draft for you.',
-          });
+          handleAIDraftAction(res.data.action);
         }
         
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);

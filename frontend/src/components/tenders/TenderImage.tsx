@@ -21,6 +21,15 @@ export default function TenderImage({ tenderId, title, className = '' }: TenderI
   const [image, setImage] = useState<ImageData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Guard against missing tenderId or title
+  if (!tenderId || !title) {
+    return (
+      <div className={`bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg ${className}`} />
+    );
+  }
+
+  const displayTitle = title || 'Tender';
+
   useEffect(() => {
     if (!tenderId) {
       setLoading(false);
@@ -59,7 +68,7 @@ export default function TenderImage({ tenderId, title, className = '' }: TenderI
     <div className={`relative overflow-hidden rounded-lg ${className}`}>
       <img
         src={image.url}
-        alt={image.alt ?? title}
+        alt={image.alt ?? displayTitle}
         className="w-full h-full object-cover"
         onError={(e) => {
           const target = e.target as HTMLImageElement;

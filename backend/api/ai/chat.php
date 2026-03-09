@@ -42,12 +42,13 @@ try {
     $reply = callAI($message, $history, $userContext, $db);
     logAIChat($userId, $message, $reply, $db);
 
-    // Check if AI returned a draft action
+    // Check if AI returned a draft action - more robust extraction
     $actionData = null;
-    if (strpos($reply, '"action"') !== false) {
-        preg_match('/\{.*"action".*\}/s', $reply, $matches);
-        if ($matches) {
-            $actionData = json_decode($matches[0], true);
+    preg_match('/\{[^{}]*"action"[^{}]*\}/s', $reply, $matches);
+    if (!empty($matches[0])) {
+        $decoded = json_decode($matches[0], true);
+        if (json_last_error() === JSON_ERROR_NONE && isset($decoded['action'], $decoded['data'])) {
+            $actionData = $decoded;
         }
     }
 

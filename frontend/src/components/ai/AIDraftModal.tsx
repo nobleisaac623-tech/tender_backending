@@ -16,7 +16,9 @@ interface AIDraftModalProps {
 }
 
 export function AIDraftModal({ isOpen, onClose, actionData, onConfirm, isLoading }: AIDraftModalProps) {
-  if (!isOpen || !actionData) return null;
+  if (!isOpen || !actionData || !actionData.data) return null;
+
+  const fields = Object.entries(actionData.data).filter(([_, v]) => v !== null && v !== '');
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -33,12 +35,14 @@ export function AIDraftModal({ isOpen, onClose, actionData, onConfirm, isLoading
           <p className="text-gray-700">{actionData.message}</p>
           
           <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
-            {Object.entries(actionData.data).map(([key, value]) => (
+            {fields.length > 0 ? fields.map(([key, value]) => (
               <div key={key} className="flex justify-between">
                 <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
                 <span className="text-gray-800">{String(value)}</span>
               </div>
-            ))}
+            )) : (
+              <p className="text-gray-500 text-center">No data available</p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">
