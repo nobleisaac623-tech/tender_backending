@@ -27,7 +27,13 @@ export function LoginPage() {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
       console.log('Login response:', data);
 
       if (res.ok && data.success && data.token) {
