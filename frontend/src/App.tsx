@@ -11,6 +11,7 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { AccountSuspended } from '@/pages/auth/AccountSuspended';
 import { AccountBlacklisted } from '@/pages/auth/AccountBlacklisted';
+import { AccountRejected } from '@/pages/auth/AccountRejected';
 import { AccountPending } from '@/pages/auth/AccountPending';
 
 import { AdminLayout } from '@/components/layout/AdminLayout';
@@ -62,6 +63,7 @@ function App() {
             <Route path="/forbidden" element={<ForbiddenPage />} />
             <Route path="/account-suspended" element={<AccountSuspended />} />
             <Route path="/account-blacklisted" element={<AccountBlacklisted />} />
+            <Route path="/account-rejected" element={<AccountRejected />} />
             <Route path="/account-pending" element={<AccountPending />} />
 
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>

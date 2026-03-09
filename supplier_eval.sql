@@ -257,7 +257,9 @@ CREATE TABLE `supplier_profiles` (
   `tax_id` varchar(100) DEFAULT NULL,
   `is_approved` tinyint(1) DEFAULT 0,
   `approved_by` int(11) DEFAULT NULL,
-  `approved_at` timestamp NULL DEFAULT NULL
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `suspension_reason` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

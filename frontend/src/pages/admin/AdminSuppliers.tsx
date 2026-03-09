@@ -30,18 +30,20 @@ function getInitials(name: string): string {
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
-type SupplierStatus = 'pending' | 'active' | 'suspended' | 'blacklisted';
+type SupplierStatus = 'pending' | 'active' | 'suspended' | 'blacklisted' | 'rejected';
 
 const STATUS_STYLES: Record<SupplierStatus, { bg: string; text: string; dot: string; label: string }> = {
   pending:     { bg: 'bg-amber-50',   text: 'text-amber-800',  dot: 'bg-amber-400',  label: 'Pending' },
-  active:      { bg: 'bg-green-50',   text: 'text-green-800',  dot: 'bg-green-500',  label: 'Active' },
+  active:      { bg: 'bg-green-50',   text: 'text-green-800',  dot: 'bg-green-500',  label: 'Approved' },
   suspended:   { bg: 'bg-red-50',     text: 'text-red-800',    dot: 'bg-red-500',    label: 'Suspended' },
   blacklisted: { bg: 'bg-rose-950',   text: 'text-white',      dot: 'bg-rose-500',   label: 'Blacklisted' },
+  rejected:    { bg: 'bg-rose-50',    text: 'text-rose-800',   dot: 'bg-rose-500',   label: 'Rejected' },
 };
 
-function resolveStatus(s: { status: string; is_approved?: boolean; is_blacklisted?: boolean }): SupplierStatus {
+function resolveStatus(s: { status: string; is_approved?: boolean; is_blacklisted?: boolean; rejection_reason?: string | null }): SupplierStatus {
   if (s.is_blacklisted) return 'blacklisted';
   if (s.is_approved && s.status === 'pending') return 'active';
+  if (s.status === 'pending' && s.rejection_reason) return 'rejected';
   if (s.status === 'suspended') return 'suspended';
   if (s.status === 'active') return 'active';
   return 'pending';
@@ -72,6 +74,8 @@ interface SupplierItem {
   address?: string;
   is_approved?: boolean;
   is_blacklisted?: boolean;
+  rejection_reason?: string | null;
+  suspension_reason?: string | null;
   rating_summary?: { average_overall: number | null; total_contracts_rated: number };
 }
 
@@ -276,14 +280,20 @@ function SupplierCard({
   s,
   onApprove,
   onSuspend,
+  onReject,
+  onBlacklist,
   approving,
   suspending,
+  blacklisting,
 }: {
   s: SupplierItem;
   onApprove: () => void;
   onSuspend: () => void;
+  onReject: () => void;
+  onBlacklist: () => void;
   approving: boolean;
   suspending: boolean;
+  blacklisting: boolean;
 }) {
   const navigate = useNavigate();
   const status = resolveStatus(s);
@@ -383,27 +393,62 @@ function SupplierCard({
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
         {status === 'pending' && (
+          <>
+            <ConfirmButton
+              label="✓ Approve"
+              confirmLabel={approving ? 'Approving…' : 'Confirm?'}
+              className="bg-green-600 text-white hover:bg-green-700"
+              onConfirm={onApprove}
+              disabled={approving}
+            />
+            <ConfirmButton
+              label="Reject"
+              confirmLabel="Confirm?"
+              className="border border-red-300 bg-white text-red-600 hover:bg-red-50"
+              onConfirm={onReject}
+            />
+          </>
+        )}
+        {status === 'active' && (
+          <>
+            <ConfirmButton
+              label="Suspend"
+              confirmLabel={suspending ? 'Suspending…' : 'Confirm?'}
+              className="border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+              onConfirm={onSuspend}
+              disabled={suspending}
+            />
+            <ConfirmButton
+              label="Blacklist"
+              confirmLabel={blacklisting ? 'Blacklisting…' : 'Confirm?'}
+              className="border border-rose-300 bg-white text-rose-600 hover:bg-rose-50"
+              onConfirm={onBlacklist}
+              disabled={blacklisting}
+            />
+          </>
+        )}
+        {status === 'suspended' && (
+          <>
+            <ConfirmButton
+              label="↺ Reinstate"
+              confirmLabel={approving ? 'Reinstating…' : 'Confirm?'}
+              className="bg-green-600 text-white hover:bg-green-700"
+              onConfirm={onApprove}
+              disabled={approving}
+            />
+            <ConfirmButton
+              label="Blacklist"
+              confirmLabel={blacklisting ? 'Blacklisting…' : 'Confirm?'}
+              className="border border-rose-300 bg-white text-rose-600 hover:bg-rose-50"
+              onConfirm={onBlacklist}
+              disabled={blacklisting}
+            />
+          </>
+        )}
+        {status === 'rejected' && (
           <ConfirmButton
             label="✓ Approve"
             confirmLabel={approving ? 'Approving…' : 'Confirm?'}
-            className="bg-green-600 text-white hover:bg-green-700"
-            onConfirm={onApprove}
-            disabled={approving}
-          />
-        )}
-        {status === 'active' && (
-          <ConfirmButton
-            label="Suspend"
-            confirmLabel={suspending ? 'Suspending…' : 'Confirm?'}
-            className="border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-            onConfirm={onSuspend}
-            disabled={suspending}
-          />
-        )}
-        {status === 'suspended' && (
-          <ConfirmButton
-            label="↺ Reactivate"
-            confirmLabel={approving ? 'Reactivating…' : 'Confirm?'}
             className="bg-green-600 text-white hover:bg-green-700"
             onConfirm={onApprove}
             disabled={approving}
@@ -500,21 +545,45 @@ export function AdminSuppliers() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (id: number) => suppliersService.approve(id, 'approve'),
+    mutationFn: ({ id, mode }: { id: number; mode: 'approve' | 'reinstate' }) =>
+      suppliersService.approve(id, mode),
     onSuccess: () => {
-      toastSuccess('Supplier approved');
+      toastSuccess('Supplier updated');
       queryClient.invalidateQueries({ queryKey: ['admin', 'suppliers'], exact: false });
     },
     onError: (e) => toastError(e instanceof Error ? e.message : 'Failed'),
   });
 
   const suspendMutation = useMutation({
-    mutationFn: (id: number) => suppliersService.approve(id, 'suspend'),
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      suppliersService.approve(id, 'suspend', reason),
     onSuccess: () => {
       toastSuccess('Supplier suspended');
       queryClient.invalidateQueries({ queryKey: ['admin', 'suppliers'], exact: false });
     },
     onError: (e) => toastError(e instanceof Error ? e.message : 'Failed'),
+  });
+
+  const blacklistMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      import('@/services/blacklist').then(({ blacklistService }) =>
+        blacklistService.add(id, reason)
+      ),
+    onSuccess: () => {
+      toastSuccess('Supplier blacklisted');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'suppliers'], exact: false });
+    },
+    onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to blacklist'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      suppliersService.approve(id, 'reject', reason),
+    onSuccess: () => {
+      toastSuccess('Supplier rejected');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'suppliers'], exact: false });
+    },
+    onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to reject'),
   });
 
   // Appeals query - only when on appeals tab
@@ -543,6 +612,16 @@ export function AdminSuppliers() {
   const clearFilters = () => {
     setRawSearch('');
     setSearchParams({}, { replace: true });
+  };
+
+  const askReason = (actionLabel: string): string | null => {
+    const input = window.prompt(`Enter reason for ${actionLabel} (min 10 characters):`);
+    if (!input) return null;
+    if (input.trim().length < 10) {
+      toastError('Reason must be at least 10 characters');
+      return null;
+    }
+    return input.trim();
   };
 
   return (
@@ -646,10 +725,29 @@ export function AdminSuppliers() {
             <SupplierCard
               key={s.id}
               s={s}
-              onApprove={() => approveMutation.mutate(s.id)}
-              onSuspend={() => suspendMutation.mutate(s.id)}
-              approving={approveMutation.isPending && approveMutation.variables === s.id}
-              suspending={suspendMutation.isPending && suspendMutation.variables === s.id}
+              onApprove={() => {
+                const status = resolveStatus(s);
+                const mode = status === 'suspended' ? 'reinstate' : 'approve';
+                approveMutation.mutate({ id: s.id, mode });
+              }}
+              onSuspend={() => {
+                const reason = askReason('suspension');
+                if (!reason) return;
+                suspendMutation.mutate({ id: s.id, reason });
+              }}
+              onReject={() => {
+                const reason = askReason('rejection');
+                if (!reason) return;
+                rejectMutation.mutate({ id: s.id, reason });
+              }}
+              onBlacklist={() => {
+                const reason = askReason('blacklisting');
+                if (!reason) return;
+                blacklistMutation.mutate({ id: s.id, reason });
+              }}
+              approving={approveMutation.isPending && approveMutation.variables?.id === s.id}
+              suspending={suspendMutation.isPending && suspendMutation.variables?.id === s.id}
+              blacklisting={blacklistMutation.isPending && blacklistMutation.variables?.id === s.id}
             />
           ))}
         </div>

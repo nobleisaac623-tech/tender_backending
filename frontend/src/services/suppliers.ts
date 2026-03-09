@@ -25,8 +25,8 @@ export const suppliersService = {
   update(data: Record<string, unknown>) {
     return api.put('/suppliers/update', data);
   },
-  approve(supplierId: number, action: 'approve' | 'suspend') {
-    return api.post('/suppliers/approve', { supplier_id: supplierId, action });
+  approve(supplierId: number, action: 'approve' | 'suspend' | 'reinstate' | 'reject', reason?: string) {
+    return api.post('/suppliers/approve', { supplier_id: supplierId, action, reason });
   },
   activity(supplierId: number) {
     return api

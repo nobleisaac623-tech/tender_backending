@@ -35,7 +35,7 @@ if ((int) $stmt->fetchColumn() >= 5) {
 }
 
 // Fetch user - include suspend fields if they exist
-$stmt = $pdo->prepare("SELECT id, name, email, password, role, status FROM users WHERE email = ?");
+$stmt = $pdo->prepare("SELECT id, name, email, password, role, status, updated_at FROM users WHERE email = ?");
 $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -48,6 +48,11 @@ if (!$user || !password_verify($password, $user['password'])) {
 // Check account status BEFORE issuing JWT - only for suppliers
 if ($user['role'] === 'supplier') {
 
+    // Load supplier profile for reasons (rejection/suspension)
+    $profileStmt = $pdo->prepare("SELECT rejection_reason, suspension_reason FROM supplier_profiles WHERE user_id = ?");
+    $profileStmt->execute([(int) $user['id']]);
+    $profile = $profileStmt->fetch(PDO::FETCH_ASSOC) ?: ['rejection_reason' => null, 'suspension_reason' => null];
+
     // Check if suspended
     if ($user['status'] === 'suspended') {
         jsonResponse([
@@ -56,9 +61,10 @@ if ($user['role'] === 'supplier') {
             'message' => 'Your account has been suspended.',
             'details' => [
                 'status' => 'suspended',
-                'reason' => 'No reason provided.',
-                'suspended_at' => null,
+                'reason' => $profile['suspension_reason'] ?? 'No reason provided.',
+                'suspended_at' => $user['updated_at'] ?? null,
                 'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+                'email' => $user['email'],
             ]
         ], 403);
     }
@@ -75,12 +81,28 @@ if ($user['role'] === 'supplier') {
                 'reason' => $blacklist['reason'] ?? 'No reason provided.',
                 'blacklisted_at' => $blacklist['blacklisted_at'] ?? null,
                 'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+                'email' => $user['email'],
             ]
         ], 403);
     }
 
-    // Check if pending approval
+    // Check if pending approval or rejected
     if ($user['status'] === 'pending') {
+        $rejectionReason = $profile['rejection_reason'] ?? null;
+        if ($rejectionReason) {
+            jsonResponse([
+                'success' => false,
+                'error_code' => 'ACCOUNT_REJECTED',
+                'message' => 'Your registration was rejected.',
+                'details' => [
+                    'status' => 'rejected',
+                    'reason' => $rejectionReason,
+                    'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+                    'email' => $user['email'],
+                ]
+            ], 403);
+        }
+
         jsonResponse([
             'success' => false,
             'error_code' => 'ACCOUNT_PENDING',
@@ -89,6 +111,7 @@ if ($user['role'] === 'supplier') {
                 'status' => 'pending',
                 'reason' => 'Our team is reviewing your registration.',
                 'contact_email' => getenv('MAIL_FROM') ?: 'procurement@example.com',
+                'email' => $user['email'],
             ]
         ], 403);
     }

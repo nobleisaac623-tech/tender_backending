@@ -30,7 +30,7 @@ export function LoginPage() {
       const data = await res.json();
       console.log('Login response:', data);
 
-      if (data.success && data.token) {
+      if (res.ok && data.success && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
@@ -40,6 +40,31 @@ export function LoginPage() {
         else if (role === 'supplier') navigate('/supplier/dashboard');
         else navigate('/dashboard');
       } else {
+        // Handle supplier account status flows
+        const code = data.error_code as string | undefined;
+        const details = data.details ?? {};
+
+        if (code === 'ACCOUNT_PENDING') {
+          sessionStorage.setItem('account_status', JSON.stringify({ ...details, email }));
+          navigate('/account-pending');
+          return;
+        }
+        if (code === 'ACCOUNT_REJECTED') {
+          sessionStorage.setItem('account_status', JSON.stringify({ ...details, email }));
+          navigate('/account-rejected');
+          return;
+        }
+        if (code === 'ACCOUNT_SUSPENDED') {
+          sessionStorage.setItem('account_status', JSON.stringify({ ...details, email }));
+          navigate('/account-suspended');
+          return;
+        }
+        if (code === 'ACCOUNT_BLACKLISTED') {
+          sessionStorage.setItem('account_status', JSON.stringify({ ...details, email }));
+          navigate('/account-blacklisted');
+          return;
+        }
+
         toastError(data.message ?? 'Invalid email or password');
       }
 

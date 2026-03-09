@@ -64,7 +64,16 @@ export function RegisterPage() {
     try {
       await registerUser({ ...data, categories: selectedCategories });
       toastSuccess('Registration successful. Your account is pending approval.');
-      navigate('/login');
+
+      // Store lightweight status info for the Pending page
+      sessionStorage.setItem('account_status', JSON.stringify({
+        status: 'pending',
+        reason: 'Our team is reviewing your registration.',
+        contact_email: import.meta.env.VITE_SUPPORT_EMAIL || 'procurement@example.com',
+        email: data.email,
+      }));
+
+      navigate('/account-pending');
     } catch (e) {
       console.error('Registration error:', e);
       toastError(e instanceof Error ? e.message : 'Registration failed');

@@ -9,6 +9,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 require_once dirname(dirname(__DIR__)) . '/helpers/validate.php';
 require_once dirname(dirname(__DIR__)) . '/config/jwt.php';
 require_once dirname(dirname(__DIR__)) . '/helpers/mailer.php';
+require_once dirname(dirname(__DIR__)) . '/helpers/email.php';
 require_once dirname(dirname(__DIR__)) . '/helpers/audit.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -30,6 +31,39 @@ if ($err !== '') {
 }
 
 $pdo = $GLOBALS['pdo'];
+
+// Block registration for actively blacklisted suppliers (by email or company name).
+// We keep the message generic as per requirements.
+$companyNameForCheck = sanitizeString($body['company_name'] ?? $name, 255);
+
+// Check blacklist by email
+$stmt = $pdo->prepare("
+    SELECT 1
+    FROM supplier_blacklist sb
+    JOIN users u ON u.id = sb.supplier_id
+    WHERE sb.is_active = 1 AND u.email = ?
+    LIMIT 1
+");
+$stmt->execute([$email]);
+if ($stmt->fetchColumn()) {
+    jsonError('Unable to complete registration. Please contact support.', 400);
+}
+
+// Check blacklist by company name
+if ($companyNameForCheck !== '') {
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM supplier_blacklist sb
+        JOIN users u ON u.id = sb.supplier_id
+        JOIN supplier_profiles sp ON sp.user_id = u.id
+        WHERE sb.is_active = 1 AND sp.company_name = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$companyNameForCheck]);
+    if ($stmt->fetchColumn()) {
+        jsonError('Unable to complete registration. Please contact support.', 400);
+    }
+}
 $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
 $stmt->execute([$email]);
 if ($stmt->fetch()) {
@@ -41,7 +75,7 @@ $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, status) V
 $stmt->execute([$name, $email, $hash]);
 $userId = (int) $pdo->lastInsertId();
 
-$companyName = sanitizeString($body['company_name'] ?? $name, 255);
+$companyName = $companyNameForCheck;
 $regNo = sanitizeString($body['registration_number'] ?? null, 100);
 $address = sanitizeString($body['address'] ?? null, 500);
 $phone = sanitizeString($body['phone'] ?? null, 50);
@@ -74,6 +108,20 @@ if (!empty($categories) && is_array($categories)) {
 }
 
 auditLog($pdo, null, 'supplier_registered', 'users', $userId, "Email: $email");
+
+// Brevo-powered admin notification about the new supplier.
+try {
+    sendBrevoSupplierRegistrationEmail([
+        'contact_name' => $name,
+        'email' => $email,
+        'company_name' => $companyName,
+        'categories' => $categories,
+    ]);
+} catch (Throwable $e) {
+    // Never break registration on email failure
+    error_log('Brevo registration email failed: ' . $e->getMessage());
+}
+
 notifyAdmin('New supplier registration', "A new supplier has registered: $name ($email). Please review and approve in the admin panel.");
 
 jsonSuccess([

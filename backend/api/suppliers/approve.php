@@ -1,7 +1,7 @@
 <?php
 /**
- * POST /api/suppliers/approve — Admin approve or suspend supplier.
- * Body: { "supplier_id": 1, "action": "approve"|"suspend" }
+ * POST /api/suppliers/approve — Admin manage supplier status.
+ * Body: { "supplier_id": 1, "action": "approve"|"suspend"|"reinstate"|"reject", "reason"?: string }
  */
 
 declare(strict_types=1);
@@ -23,11 +23,17 @@ $body = getJsonBody();
 $supplierId = isset($body['supplier_id']) ? (int) $body['supplier_id'] : 0;
 $action = trim((string) ($body['action'] ?? ''));
 $reason = isset($body['reason']) ? trim((string) $body['reason']) : '';
-if ($supplierId <= 0 || !in_array($action, ['approve', 'suspend'], true)) {
+if ($supplierId <= 0 || !in_array($action, ['approve', 'suspend', 'reinstate', 'reject'], true)) {
     jsonError('Invalid supplier_id or action', 400);
 }
 
-$stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ? AND role = 'supplier'");
+if (in_array($action, ['suspend', 'reject'], true)) {
+    if ($reason === '' || mb_strlen($reason) < 10) {
+        jsonError('Reason must be at least 10 characters', 400);
+    }
+}
+
+$stmt = $pdo->prepare("SELECT id, name, email, status FROM users WHERE id = ? AND role = 'supplier'");
 $stmt->execute([$supplierId]);
 $supplier = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$supplier) {
@@ -35,9 +41,10 @@ if (!$supplier) {
 }
 
 if ($action === 'approve') {
+    // Approve new or previously rejected supplier
     $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
     $stmt->execute([$supplierId]);
-    $stmt = $pdo->prepare("UPDATE supplier_profiles SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE user_id = ?");
+    $stmt = $pdo->prepare("UPDATE supplier_profiles SET is_approved = 1, approved_by = ?, approved_at = NOW(), rejection_reason = NULL, suspension_reason = NULL WHERE user_id = ?");
     $stmt->execute([$user['user_id'], $supplierId]);
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Account approved', 'Your supplier account has been approved. You can now submit bids.']);
@@ -49,10 +56,42 @@ if ($action === 'approve') {
     );
     auditLog($pdo, $user['user_id'], 'supplier_approved', 'users', $supplierId, $supplier['email']);
     jsonSuccess(['message' => 'Supplier approved']);
+} elseif ($action === 'reinstate') {
+    // Reinstate a suspended supplier
+    $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
+    $stmt->execute([$supplierId]);
+    $stmt = $pdo->prepare("UPDATE supplier_profiles SET is_approved = 1, suspension_reason = NULL WHERE user_id = ?");
+    $stmt->execute([$supplierId]);
+    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+    $stmt->execute([$supplierId, 'Account reinstated', 'Your supplier account has been reinstated. You can now submit bids again.']);
+    sendMail(
+        $supplier['email'],
+        'Supplier account reinstated',
+        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been reinstated. You can now log in and continue participating in tenders.</p>',
+        'Your supplier account has been reinstated.'
+    );
+    auditLog($pdo, $user['user_id'], 'supplier_reinstated', 'users', $supplierId, $supplier['email']);
+    jsonSuccess(['message' => 'Supplier reinstated']);
+} elseif ($action === 'reject') {
+    // Mark supplier as rejected (keep status=pending but store reason)
+    $stmt = $pdo->prepare("UPDATE supplier_profiles SET rejection_reason = ? WHERE user_id = ?");
+    $stmt->execute([$reason, $supplierId]);
+    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+    $stmt->execute([$supplierId, 'Registration rejected', 'Your supplier registration was rejected. Reason: ' . $reason]);
+    sendMail(
+        $supplier['email'],
+        'Supplier registration rejected',
+        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier registration was reviewed and unfortunately rejected.</p><p><strong>Reason:</strong> ' . htmlspecialchars($reason) . '</p><p>You may contact the administrator for clarification or submit a new registration in the future.</p>',
+        'Your supplier registration was rejected. Reason: ' . $reason
+    );
+    auditLog($pdo, $user['user_id'], 'supplier_rejected', 'users', $supplierId, $reason);
+    jsonSuccess(['message' => 'Supplier rejected']);
 } else {
-    // Update status to suspended - reason fields are optional
+    // Suspend supplier - reason required and stored
     $stmt = $pdo->prepare("UPDATE users SET status = 'suspended' WHERE id = ?");
     $stmt->execute([$supplierId]);
+    $stmt = $pdo->prepare("UPDATE supplier_profiles SET suspension_reason = ? WHERE user_id = ?");
+    $stmt->execute([$reason, $supplierId]);
     
     // Send suspension email
     $stmt = $pdo->prepare("SELECT email FROM users WHERE role = 'admin' AND status = 'active' LIMIT 1");
@@ -70,6 +109,6 @@ if ($action === 'approve') {
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Account suspended', 'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.')]);
     
-    auditLog($pdo, $user['user_id'], 'supplier_suspended', 'users', $supplierId, $supplier['email']);
+    auditLog($pdo, $user['user_id'], 'supplier_suspended', 'users', $supplierId, $supplier['email'] . ' Reason: ' . $reason);
     jsonSuccess(['message' => 'Supplier suspended']);
 }

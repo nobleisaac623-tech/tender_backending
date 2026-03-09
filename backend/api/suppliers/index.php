@@ -49,6 +49,7 @@ $total = (int) $stmt->fetchColumn();
 $params[] = $perPage;
 $params[] = $offset;
 $sql = "SELECT u.id, u.name, u.email, u.status, u.created_at, sp.company_name, sp.registration_number, sp.category, sp.phone, sp.is_approved,
+        sp.rejection_reason, sp.suspension_reason,
         (SELECT 1 FROM supplier_blacklist sb WHERE sb.supplier_id = u.id AND sb.is_active = 1 LIMIT 1) AS is_blacklisted,
         (SELECT AVG(overall_score) FROM supplier_ratings WHERE supplier_id = u.id) AS rating_avg,
         (SELECT COUNT(*) FROM supplier_ratings WHERE supplier_id = u.id) AS rating_count
