@@ -1,57 +1,75 @@
 <?php
-require_once APP_ROOT . '/config/cors.php';
-require_once APP_ROOT . '/config/auth-middleware.php';
-require_once APP_ROOT . '/helpers/response.php';
-require_once APP_ROOT . '/helpers/validate.php';
-require_once APP_ROOT . '/helpers/ai.php';
-require_once APP_ROOT . '/helpers/audit.php';
+require_once __DIR__ . '/../bootstrap.php';
 
-requireRole(['admin']);
-checkAIRateLimit($currentUser['id'], 'tender_writer', 15);
-
-$data     = json_decode(file_get_contents('php://input'), true);
-$keywords = trim(sanitizeString($data['keywords'] ?? ''));
-$category = trim(sanitizeString($data['category'] ?? 'General'));
-$budget   = trim(sanitizeString($data['budget'] ?? 'Not specified'));
-$duration = trim(sanitizeString($data['duration'] ?? '12 months'));
-
-if (strlen($keywords) < 5) {
-    jsonError('Please describe what you need in at least a few words.');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    jsonError('Method not allowed', 405);
 }
 
-$domainPrompt = "You are helping an admin write a professional tender document for a 
-Ghana government or private sector procurement. Follow GPPA (Ghana Public Procurement 
-Authority) best practices. Respond with valid JSON only — no markdown, no extra text.";
+$user = requireAuth();
+requireRole(['admin']);
 
-$userMessage = "Generate a professional tender document based on:
-- Description: {$keywords}
-- Category: {$category}  
-- Budget: {$budget}
-- Duration: {$duration}
+$userId = (int)($user['user_id'] ?? 0);
+$pdo = $GLOBALS['pdo'] ?? null;
 
-Return ONLY a valid JSON object:
-{
-  \"title\": \"Professional tender title, max 80 characters\",
-  \"description\": \"Formal 3-4 paragraph description covering: (1) background and context, (2) scope of work and objectives, (3) key technical requirements, (4) expected deliverables and success criteria. Write in formal procurement language.\",
-  \"criteria\": [
-    {\"name\": \"Technical Proposal\", \"description\": \"Quality, clarity and feasibility of the technical approach and methodology\", \"max_score\": 100, \"weight\": 40},
-    {\"name\": \"Price and Value\", \"description\": \"Competitiveness, reasonableness and transparency of pricing\", \"max_score\": 100, \"weight\": 35},
-    {\"name\": \"Experience and Capacity\", \"description\": \"Relevant past experience, qualified team, and organizational capacity\", \"max_score\": 100, \"weight\": 25}
-  ],
-  \"requirements\": [
-    \"Valid business registration certificate\",
-    \"Current tax clearance certificate\",
-    \"Minimum 3 years relevant industry experience\",
-    \"Signed bid form and declaration\"
-  ],
-  \"tags\": [\"relevant\", \"keyword\", \"tags\"]
-}";
+$input = getJsonBody();
+$keywords = sanitizeString($input['keywords'] ?? '', 2000);
+$category = sanitizeString($input['category'] ?? 'General', 100);
+$budget = sanitizeString($input['budget'] ?? 'Not specified', 100);
+$duration = sanitizeString($input['duration'] ?? '12 months', 100);
+
+if (mb_strlen($keywords) < 5) {
+    jsonError('Please describe what you need in at least a few words.', 400);
+}
+
+checkAIRateLimit($userId, $pdo);
+
+$domainPrompt =
+    "You are helping an admin write a professional tender document for a Ghana government or private sector procurement. " .
+    "Follow GPPA (Ghana Public Procurement Authority) best practices. " .
+    "Respond with valid JSON only — no markdown, no extra text.";
+
+$userMessage =
+    "Generate a professional tender document based on:\n" .
+    "- Description: {$keywords}\n" .
+    "- Category: {$category}\n" .
+    "- Budget: {$budget}\n" .
+    "- Duration: {$duration}\n\n" .
+    "Return ONLY a valid JSON object:\n" .
+    "{\n" .
+    "  \"title\": \"Professional tender title, max 80 characters\",\n" .
+    "  \"description\": \"Formal 3-4 paragraph description covering: (1) background and context, (2) scope of work and objectives, (3) key technical requirements, (4) expected deliverables and success criteria. Write in formal procurement language.\",\n" .
+    "  \"criteria\": [\n" .
+    "    {\"name\": \"Technical Proposal\", \"description\": \"Quality, clarity and feasibility of the technical approach and methodology\", \"max_score\": 100, \"weight\": 40},\n" .
+    "    {\"name\": \"Price and Value\", \"description\": \"Competitiveness, reasonableness and transparency of pricing\", \"max_score\": 100, \"weight\": 35},\n" .
+    "    {\"name\": \"Experience and Capacity\", \"description\": \"Relevant past experience, qualified team, and organizational capacity\", \"max_score\": 100, \"weight\": 25}\n" .
+    "  ],\n" .
+    "  \"requirements\": [\n" .
+    "    \"Valid business registration certificate\",\n" .
+    "    \"Current tax clearance certificate\",\n" .
+    "    \"Minimum 3 years relevant industry experience\",\n" .
+    "    \"Signed bid form and declaration\"\n" .
+    "  ],\n" .
+    "  \"tags\": [\"relevant\", \"keyword\", \"tags\"]\n" .
+    "}";
 
 try {
-    logAudit($currentUser['id'], 'ai_request', 'tender', null, 'feature: tender_writer');
-    $raw    = callGemini($domainPrompt, $userMessage, 2000);
-    $parsed = extractJSON($raw);
-    echo json_encode(['success' => true, 'reply' => json_encode($parsed)]);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'reply' => 'ProcureAI could not generate the tender right now. Please try again.']);
+    $raw = callAI($domainPrompt . "\n\n" . $userMessage, [], [
+        'id' => $userId,
+        'role' => $user['role'] ?? 'admin',
+        'name' => $user['name'] ?? 'there',
+    ], $pdo);
+    $parsed = ai_extract_json($raw);
+
+    if ($pdo instanceof PDO) {
+        auditLog($pdo, $userId, 'ai_request', 'tender', null, 'feature: tender_writer');
+    }
+
+    jsonSuccess($parsed);
+} catch (Throwable $e) {
+    error_log('AI generate-tender error: ' . $e->getMessage());
+    jsonError('ProcureAI could not generate the tender right now. Please try again.', 500);
 }

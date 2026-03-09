@@ -31,6 +31,7 @@ require_once $backendRoot . '/config/database.php';
 require_once $backendRoot . '/config/cors.php';
 require_once $backendRoot . '/helpers/response.php';
 require_once $backendRoot . '/helpers/validate.php';
+require_once $backendRoot . '/helpers/ai.php';
 
 // Optionally include JWT config
 $jwtPath = $backendRoot . '/config/jwt.php';
