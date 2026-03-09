@@ -49,9 +49,38 @@ if (!$user || !password_verify($password, $user['password'])) {
 if ($user['role'] === 'supplier') {
 
     // Load supplier profile for reasons (rejection/suspension)
-    $profileStmt = $pdo->prepare("SELECT rejection_reason, suspension_reason FROM supplier_profiles WHERE user_id = ?");
-    $profileStmt->execute([(int) $user['id']]);
-    $profile = $profileStmt->fetch(PDO::FETCH_ASSOC) ?: ['rejection_reason' => null, 'suspension_reason' => null];
+    $profile = ['rejection_reason' => null, 'suspension_reason' => null];
+    try {
+        $profileStmt = $pdo->prepare("SELECT rejection_reason, suspension_reason FROM supplier_profiles WHERE user_id = ?");
+        $profileStmt->execute([(int) $user['id']]);
+        $row = $profileStmt->fetch(PDO::FETCH_ASSOC);
+        if ($row !== false) {
+            $profile = $row;
+        }
+    } catch (\PDOException $e) {
+        // If columns don't exist yet (older DB), attempt to add them once and retry, but never break login
+        if ($e->getCode() === '42S22') {
+            try {
+                $pdo->exec("
+                    ALTER TABLE supplier_profiles
+                        ADD COLUMN IF NOT EXISTS rejection_reason TEXT DEFAULT NULL,
+                        ADD COLUMN IF NOT EXISTS suspension_reason TEXT DEFAULT NULL
+                ");
+                $profileStmt = $pdo->prepare("SELECT rejection_reason, suspension_reason FROM supplier_profiles WHERE user_id = ?");
+                $profileStmt->execute([(int) $user['id']]);
+                $row = $profileStmt->fetch(PDO::FETCH_ASSOC);
+                if ($row !== false) {
+                    $profile = $row;
+                }
+            } catch (\Throwable $e2) {
+                // Ignore migration failure; we'll just operate without detailed reasons
+                $profile = ['rejection_reason' => null, 'suspension_reason' => null];
+            }
+        } else {
+            // For any other SQL error, fall back silently to no reasons
+            $profile = ['rejection_reason' => null, 'suspension_reason' => null];
+        }
+    }
 
     // Check if suspended
     if ($user['status'] === 'suspended') {
