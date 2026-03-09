@@ -36,13 +36,21 @@ try {
     $db = null; 
 }
 
-$userId = (int)$user['id'];
+$userId = (int)($user['user_id'] ?? $user['id'] ?? 0);
+
+if (!$userId) {
+    jsonResponse(['success' => false, 'message' => 'Invalid token'], 401); exit();
+}
+
 checkAIRateLimit($userId, $db);
 
+$userRole = $user['role'] ?? 'user';
+$userName = $user['name'] ?? $user['username'] ?? 'there';
+
 $userContext = [
-    'id' => $userId,
-    'role' => $user['role'] ?? 'user',
-    'name' => $user['name'] ?? $user['username'] ?? 'there',
+    'id'        => $userId,
+    'role'      => $userRole,
+    'name'      => $userName,
     'tender_id' => $tenderId ?: null
 ];
 
