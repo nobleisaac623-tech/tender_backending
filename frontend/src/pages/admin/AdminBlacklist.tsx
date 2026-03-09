@@ -123,7 +123,7 @@ export function AdminBlacklist() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((r) => (
+                    {items.map((r: BlacklistRecord) => (
                       <tr key={r.id} className="border-b border-gray-100">
                         <td className="px-4 py-3">{r.supplier_name}</td>
                         <td className="px-4 py-3 text-gray-600">{r.supplier_email}</td>

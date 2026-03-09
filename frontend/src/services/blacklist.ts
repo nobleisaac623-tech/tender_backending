@@ -1,12 +1,4 @@
 import api from './api';
-
-export const blacklistService = {
-  add(supplierId: number, reason: string) {
-    return api.post('/blacklist/add', { supplier_id: supplierId, reason });
-  },
-};
-
-import api from './api';
 import type { BlacklistRecord } from '@/types';
 
 export const blacklistService = {
