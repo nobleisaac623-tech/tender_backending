@@ -45,12 +45,12 @@ function getTimeLeft(deadline: string): { text: string; urgent: boolean; passed:
 
 function TenderCard({ tender, onPublish, onClose, onDelete, isPublishing, isClosing, isDeleting }: TenderCardProps) {
   const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(tender.submission_deadline));
-  const categoryAsset = getCategoryAsset(tender.category_name);
-  const [imageSrc, setImageSrc] = useState(() => getTenderImage(tender));
+  const categoryAsset = getCategoryAsset(tender?.category_name);
+  const [imageSrc, setImageSrc] = useState(() => tender ? getTenderImage(tender) : '');
   const navigate = useNavigate();
 
   const handleImageError = () => {
-    setImageSrc(getFallbackImage({ id: tender.id, title: tender.title, category_name: tender.category_name }));
+    setImageSrc(getFallbackImage({ id: tender?.id ?? 0, title: tender?.title ?? '', category_name: tender?.category_name }));
   };
 
   useEffect(() => {
@@ -168,8 +168,8 @@ function TenderCard({ tender, onPublish, onClose, onDelete, isPublishing, isClos
       {/* Card Body */}
       <div className="p-4">
         <div className="mb-2 flex items-start justify-between">
-          <h3 className="line-clamp-2 text-base font-bold text-[#0f172a]">{tender.title}</h3>
-          <span className="ml-2 whitespace-nowrap text-xs text-gray-500">{tender.reference_number}</span>
+          <h3 className="line-clamp-2 text-base font-bold text-[#0f172a]">{tender?.title}</h3>
+          <span className="ml-2 whitespace-nowrap text-xs text-gray-500">{tender?.reference_number}</span>
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -196,7 +196,7 @@ function TenderCard({ tender, onPublish, onClose, onDelete, isPublishing, isClos
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
               <DollarSign className="h-4 w-4 text-gray-400" />
-              <span className="font-medium text-gray-700">{formatBudget(tender.budget)}</span>
+              <span className="font-medium text-gray-700">{formatBudget(tender?.budget)}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Inbox className={`h-4 w-4 ${(tender.bids_count ?? 0) > 0 ? 'text-blue-500' : 'text-gray-400'}`} />

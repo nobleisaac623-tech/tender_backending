@@ -54,6 +54,19 @@ export function AdminTenderDetail() {
     staleTime: 30000,
   });
 
+  // Guard against undefined tender
+  const safeTender = tender ?? {
+    id: 0,
+    title: '',
+    description: '',
+    budget: 0,
+    reference_number: '',
+    status: 'draft',
+    submission_deadline: '',
+    category_name: '',
+    tags: [],
+  };
+
   const { data: bidsData } = useQuery({
     queryKey: ['bids', tenderId],
     queryFn: () => bidsService.list({ tender_id: tenderId }),
@@ -113,8 +126,8 @@ export function AdminTenderDetail() {
   const [imageSrc, setImageSrc] = useState<string>(tender ? getTenderImage(tender) : '');
 
   const handleImageError = () => {
-    if (tender) {
-      setImageSrc(getFallbackImage({ id: tender.id, title: tender.title, category_name: tender.category_name }));
+    if (safeTender) {
+      setImageSrc(getFallbackImage({ id: safeTender.id, title: safeTender.title, category_name: safeTender.category_name }));
     }
   };
 
@@ -157,9 +170,9 @@ export function AdminTenderDetail() {
     setEditRef(tender?.reference_number ?? '');
     setEditDescription(tender?.description ?? '');
     setEditCategoryId(tender?.category_id ?? null);
-    setEditTags(tender?.tags ?? []);
-    setEditBudget(tender?.budget != null ? String(tender.budget) : '');
-    setEditSubmissionDeadline(tender?.submission_deadline ? tender.submission_deadline.replace(' ', 'T').slice(0, 16) : '');
+    setEditTags(safeTender?.tags ?? []);
+    setEditBudget(safeTender?.budget != null ? String(safeTender.budget) : '');
+    setEditSubmissionDeadline(safeTender?.submission_deadline ? safeTender.submission_deadline.replace(' ', 'T').slice(0, 16) : '');
     setEditOpeningDate(tender?.opening_date ? tender.opening_date.replace(' ', 'T').slice(0, 16) : '');
     setEditing(true);
   };
@@ -268,7 +281,7 @@ export function AdminTenderDetail() {
             <div>
               <h3 className="mb-2 text-lg font-semibold">Description</h3>
               {editing ? null : (
-                <p className="whitespace-pre-wrap text-gray-700">{tender.description || 'No description provided.'}</p>
+                <p className="whitespace-pre-wrap text-gray-700">{safeTender.description || 'No description provided.'}</p>
               )}
             </div>
 
@@ -555,8 +568,8 @@ export function AdminTenderDetail() {
         <CardContent className="p-6">
           {/* Title & Reference */}
           <div className="mb-4">
-            <h1 className="text-2xl font-bold text-[#0f172a]">{tender.title}</h1>
-            <p className="text-gray-500">{tender.reference_number}</p>
+            <h1 className="text-2xl font-bold text-[#0f172a]">{safeTender.title}</h1>
+            <p className="text-gray-500">{safeTender.reference_number}</p>
           </div>
 
           {/* Info Grid */}
@@ -573,7 +586,7 @@ export function AdminTenderDetail() {
               <DollarSign className="h-5 w-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Budget</p>
-                <p className="font-medium">{formatBudget(tender.budget)}</p>
+                <p className="font-medium">{formatBudget(safeTender.budget)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
