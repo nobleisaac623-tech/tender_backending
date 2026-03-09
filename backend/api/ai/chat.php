@@ -1,63 +1,73 @@
 <?php
 require_once APP_ROOT . '/config/cors.php';
-require_once APP_ROOT . '/config/auth-middleware.php';
-require_once APP_ROOT . '/helpers/response.php';
-require_once APP_ROOT . '/helpers/validate.php';
+require_once APP_ROOT . '/helpers/auth.php';
 require_once APP_ROOT . '/helpers/ai.php';
-require_once APP_ROOT . '/helpers/audit.php';
+require_once APP_ROOT . '/helpers/database.php';
+require_once APP_ROOT . '/helpers/response.php';
 
-$currentUser = requireAuth();
-if (!$currentUser) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "reply" => "Authentication required."]);
-    exit;
+// Handle OPTIONS preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-$userId = (int) $currentUser['user_id'];
-checkAIRateLimit($userId, 'procureai_chat', 30);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    jsonError('Method not allowed', 405);
+}
 
-$data    = json_decode(file_get_contents('php://input'), true);
-$message = trim(sanitizeString($data['message'] ?? ''));
-$history = $data['history'] ?? [];
+// Authenticate user
+$token = getBearerToken();
+$user = validateToken($token);
 
-if (!$message) jsonError('Message cannot be empty.');
-if (strlen($message) > 800) jsonError('Message is too long. Please keep it under 800 characters.');
+if (!$user) {
+    http_response_code(401);
+    echo json_encode(["success" => false, "reply" => "Authentication required."]);
+    exit();
+}
 
-$roleLabel = match($currentUser['role']) {
-    'admin' => 'Administrator',
-    'evaluator' => 'Evaluator',
-    'supplier' => 'Supplier',
-    default => 'User'
-};
+$userId = (int) $user['user_id'];
+$userRole = $user['role'] ?? 'user';
+$userName = $user['name'] ?? $user['username'] ?? 'there';
 
-$domainPrompt = "You are the ProcureAI chat assistant — the intelligent heart of ProcurEase.
+// Get request body
+$input = json_decode(file_get_contents('php://input'), true);
+$message = trim($input['message'] ?? '');
+$history = $input['history'] ?? [];
 
-YOUR KNOWLEDGE AREAS:
-- Ghana Public Procurement Authority (GPPA) Act 663 and regulations
-- World Bank and AfDB procurement guidelines and standards
-- African business environment: market trends, pricing, supply chain
-- Tender writing, evaluation criteria design, and bid assessment
-- Contract management, milestone tracking, supplier performance
-- Business decision-making: cost-benefit analysis, risk management, ROI
-- Anti-corruption in procurement: transparency, audit trails, ethics
-- SME development: how small suppliers can grow and win contracts
-- Market pricing for common categories: IT, construction, services, supplies
-- Supplier relationship management and performance improvement
+if (empty($message)) {
+    jsonError('Message is required', 400);
+}
 
-RESPONSE GUIDELINES:
-- Keep responses between 100-250 words unless a detailed breakdown is truly needed
-- Use bullet points for lists of 3 or more items
-- Bold key terms using **bold** markdown
-- Always give practical, actionable advice
-- When discussing prices or statistics, say 'market data suggests' or 'industry experience shows'
-- For complex legal or regulatory questions, recommend a GPPA-certified procurement consultant
-- Current user role is: {$roleLabel}
-- Tailor advice appropriately — admins get strategic advice, suppliers get practical bidding tips";
+// Sanitize message
+$message = htmlspecialchars(strip_tags($message), ENT_QUOTES, 'UTF-8');
 
+// Get DB connection
+$db = null;
 try {
-    $reply = callGeminiChat($domainPrompt, $history, $message, 1000);
-    logAudit($userId, 'ai_request', 'chat', null, 'feature: procureai_chat');
-    jsonSuccess(['reply' => $reply]);
+    $db = Database::getInstance();
 } catch (Exception $e) {
-    jsonError('ProcureAI is temporarily unavailable. Please try again in a moment.');
+    error_log('DB connection failed: ' . $e->getMessage());
+}
+
+// Check rate limit
+checkAIRateLimit($userId, $db);
+
+// Build user context
+$userContext = [
+    'role' => $userRole,
+    'name' => $userName
+];
+
+// Call ProcureAI (Groq)
+try {
+    $reply = callAI($message, $history, $userContext);
+
+    // Log the conversation
+    logAIChat($userId, $message, $reply, $db);
+
+    jsonSuccess(['reply' => $reply]);
+
+} catch (Exception $e) {
+    error_log('ProcureAI error: ' . $e->getMessage());
+    jsonError('ProcureAI is temporarily unavailable. Please try again in a moment.', 500);
 }
