@@ -122,8 +122,15 @@ export function AdminTenderDetail() {
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories, staleTime: 60000 });
 
   const [timeLeft, setTimeLeft] = useState<{ text: string; urgent: boolean; passed: boolean } | null>(null);
-  const categoryAsset = tender ? getCategoryAsset(tender.category_name) : getCategoryAsset(null);
-  const [imageSrc, setImageSrc] = useState<string>(tender ? getTenderImage(tender) : '');
+  const categoryAsset = getCategoryAsset(tender?.category_name ?? null);
+  const [imageSrc, setImageSrc] = useState<string>('');
+
+  // Set imageSrc when tender loads
+  useEffect(() => {
+    if (tender) {
+      setImageSrc(getTenderImage(tender));
+    }
+  }, [tender]);
 
   const handleImageError = () => {
     if (safeTender) {
