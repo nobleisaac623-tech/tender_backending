@@ -89,12 +89,17 @@ export function extractCleanTitle(title: string | null | undefined): string | nu
  * @param tender - The tender object with id, title, and category_name
  * @returns A unique Unsplash image URL
  */
-export function getTenderImage(tender: { id: number; title?: string | null; category_name?: string | null }): string {
-  // Use category-based static images from categoryAssets
-  const category = tender.category_name || 'Other';
-  const asset = categoryAssets[category] || categoryAssets['Other'];
-  
-  return asset.image;
+export function getTenderImage(tender: { id?: number; title?: string | null; category_name?: string | null } | undefined): string {
+  if (!tender) return '';
+  try {
+    // Use category-based static images from categoryAssets
+    const category = tender.category_name || 'Other';
+    const asset = categoryAssets[category] || categoryAssets['Other'];
+    
+    return asset.image;
+  } catch {
+    return getFallbackImage(tender);
+  }
 }
 
 /**
@@ -102,14 +107,16 @@ export function getTenderImage(tender: { id: number; title?: string | null; cate
  * @param tender - The tender object with id, title, and category_name
  * @returns A generic fallback image URL
  */
-export function getFallbackImage(tender: { id: number; title?: string | null; category_name?: string | null }): string {
+export function getFallbackImage(tender: { id?: number; title?: string | null; category_name?: string | null } | undefined): string {
+  if (!tender) return '';
+  
   const category = tender.category_name || 'business';
   const title = tender.title || '';
   
   // Use different photo ID for fallback based on tender id
-  const photoId = 1600 + (tender.id % 400);
+  const photoId = 1600 + ((tender.id ?? 0) % 400);
   
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&q=60&w=800&sig=${tender.id}&query=${encodeURIComponent(category)},${encodeURIComponent(title)}`;
+  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&q=60&w=800&sig=${tender.id ?? 0}&query=${encodeURIComponent(category)},${encodeURIComponent(title)}`;
 }
 
 export const categoryAssets: Record<string, { image: string; color: string }> = {

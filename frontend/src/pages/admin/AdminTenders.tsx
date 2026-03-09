@@ -46,7 +46,13 @@ function getTimeLeft(deadline: string): { text: string; urgent: boolean; passed:
 function TenderCard({ tender, onPublish, onClose, onDelete, isPublishing, isClosing, isDeleting }: TenderCardProps) {
   const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(tender.submission_deadline));
   const categoryAsset = getCategoryAsset(tender?.category_name);
-  const [imageSrc, setImageSrc] = useState(() => tender ? getTenderImage(tender) : '');
+  const [imageSrc, setImageSrc] = useState(() => {
+    try {
+      return tender?.title ? getTenderImage(tender) : '';
+    } catch {
+      return '';
+    }
+  });
   const navigate = useNavigate();
 
   const handleImageError = () => {
