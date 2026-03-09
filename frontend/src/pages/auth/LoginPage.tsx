@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toastError } from '@/hooks/useToast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthContext';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -46,6 +48,13 @@ export function LoginPage() {
           localStorage.setItem('token', token);
         }
         localStorage.setItem('user', JSON.stringify(user));
+
+        // Ensure AuthContext picks up the new session so protected routes don't bounce back to login
+        try {
+          await refreshUser();
+        } catch {
+          // If /auth/me fails, we'll still fall back to localStorage user
+        }
         
         // Redirect based on role
         const role = user?.role;
