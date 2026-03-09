@@ -5,69 +5,59 @@ require_once APP_ROOT . '/helpers/ai.php';
 require_once APP_ROOT . '/helpers/database.php';
 require_once APP_ROOT . '/helpers/response.php';
 
-// Handle OPTIONS preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    jsonError('Method not allowed', 405);
+    jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405); exit();
 }
 
-// Authenticate user
 $token = getBearerToken();
 $user = validateToken($token);
 
 if (!$user) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "reply" => "Authentication required."]);
-    exit();
+    jsonResponse(['success' => false, 'message' => 'Authentication required'], 401); exit();
 }
 
-$userId = (int) $user['user_id'];
-$userRole = $user['role'] ?? 'user';
-$userName = $user['name'] ?? $user['username'] ?? 'there';
-
-// Get request body
 $input = json_decode(file_get_contents('php://input'), true);
-$message = trim($input['message'] ?? '');
+$message = trim(htmlspecialchars(strip_tags($input['message'] ?? ''), ENT_QUOTES, 'UTF-8'));
 $history = $input['history'] ?? [];
+$tenderId = (int)($input['tender_id'] ?? 0);
 
 if (empty($message)) {
-    jsonError('Message is required', 400);
+    jsonResponse(['success' => false, 'message' => 'Message is required'], 400); exit();
 }
 
-// Sanitize message
-$message = htmlspecialchars(strip_tags($message), ENT_QUOTES, 'UTF-8');
+try { $db = Database::getInstance(); } catch (Exception $e) { $db = null; }
 
-// Get DB connection
-$db = null;
-try {
-    $db = Database::getInstance();
-} catch (Exception $e) {
-    error_log('DB connection failed: ' . $e->getMessage());
-}
-
-// Check rate limit
+$userId = (int)$user['id'];
 checkAIRateLimit($userId, $db);
 
-// Build user context
 $userContext = [
-    'role' => $userRole,
-    'name' => $userName
+    'id' => $userId,
+    'role' => $user['role'] ?? 'user',
+    'name' => $user['name'] ?? $user['username'] ?? 'there',
+    'tender_id' => $tenderId ?: null
 ];
 
-// Call ProcureAI (Groq)
 try {
-    $reply = callAI($message, $history, $userContext);
-
-    // Log the conversation
+    $reply = callAI($message, $history, $userContext, $db);
     logAIChat($userId, $message, $reply, $db);
 
-    jsonSuccess(['reply' => $reply]);
+    // Check if AI returned a draft action
+    $actionData = null;
+    if (strpos($reply, '"action"') !== false) {
+        preg_match('/\{.*"action".*\}/s', $reply, $matches);
+        if ($matches) {
+            $actionData = json_decode($matches[0], true);
+        }
+    }
+
+    jsonResponse([
+        'success' => true,
+        'reply' => $reply,
+        'action' => $actionData
+    ]);
 
 } catch (Exception $e) {
-    error_log('ProcureAI error: ' . $e->getMessage());
-    jsonError('ProcureAI is temporarily unavailable. Please try again in a moment.', 500);
+    error_log('ProcureAI: ' . $e->getMessage());
+    jsonResponse(['success' => false, 'message' => 'ProcureAI is temporarily unavailable.'], 500);
 }

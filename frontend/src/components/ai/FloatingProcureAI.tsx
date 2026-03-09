@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import MarkdownMessage from './MarkdownMessage';
 import AIErrorBoundary from './AIErrorBoundary';
+import { AIDraftModal } from './AIDraftModal';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,10 +21,21 @@ export default function FloatingProcureAI() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [draftModal, setDraftModal] = useState<{
+    action: string;
+    data: Record<string, unknown>;
+    message: string;
+  } | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const location = useLocation();
+
+  // Extract tender_id from URL (e.g., /admin/tenders/123 or /supplier/tenders/123)
+  const tenderIdMatch = location.pathname.match(/\/(?:admin|supplier|evaluator)\/tenders\/(\d+)/);
+  const tenderId = tenderIdMatch ? parseInt(tenderIdMatch[1]) : null;
 
   // Hide on the full intelligence page
   if (location.pathname.includes('/intelligence')) return null;
@@ -61,10 +73,21 @@ export default function FloatingProcureAI() {
       const res = await api.post('/ai/chat', {
         message: text,
         history: historyToSend,
+        tender_id: tenderId,
       });
 
       if (res.data.success) {
-        const reply = res.data.data?.reply ?? res.data.data ?? 'No response received.';
+        const reply = res.data.reply ?? res.data.data ?? 'No response received.';
+        
+        // Check for action from AI
+        if (res.data.action && res.data.action.action) {
+          setDraftModal({
+            action: res.data.action.action,
+            data: res.data.action.data || {},
+            message: res.data.action.message || 'AI has generated a draft for you.',
+          });
+        }
+        
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       } else {
         setMessages(prev => [...prev, {
@@ -80,6 +103,40 @@ export default function FloatingProcureAI() {
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmDraft = async () => {
+    if (!draftModal) return;
+    
+    setIsSavingDraft(true);
+    try {
+      const res = await api.post('/ai/draft-action', {
+        action: draftModal.action,
+        data: draftModal.data,
+      });
+      
+      if (res.data.success) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ ${res.data.message}`,
+        }]);
+        setDraftModal(null);
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `❌ Failed to save draft: ${res.data.message}`,
+        }]);
+        setDraftModal(null);
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '❌ Failed to save draft. Please try again.',
+      }]);
+      setDraftModal(null);
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -99,6 +156,15 @@ export default function FloatingProcureAI() {
 
   return (
     <>
+      {/* Draft Modal */}
+      <AIDraftModal
+        isOpen={!!draftModal}
+        onClose={() => setDraftModal(null)}
+        actionData={draftModal}
+        onConfirm={handleConfirmDraft}
+        isLoading={isSavingDraft}
+      />
+
       {/* Popup Chat Window */}
       {isOpen && (
         <div
@@ -144,6 +210,11 @@ export default function FloatingProcureAI() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {tenderId && (
+                <span style={{ fontSize: '10px', color: '#fbbf24', background: 'rgba(251,191,36,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                  Tender #{tenderId}
+                </span>
+              )}
               <Link
                 to={intelligenceRoute}
                 style={{ fontSize: '11px', color: '#94a3b8', textDecoration: 'none' }}
@@ -239,10 +310,10 @@ export default function FloatingProcureAI() {
                         display: 'inline-block',
                         animation: `procureai-bounce 1.2s infinite ${i * 0.2}s`,
                     }} />
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             <div ref={messagesEndRef} />
           </div>
           </AIErrorBoundary>
