@@ -9,6 +9,7 @@ interface TenderImageProps {
 
 interface ImageData {
   url: string;
+  remote_url: string;
   thumb: string;
   alt: string;
   credit: string | null;
@@ -70,7 +71,7 @@ export default function TenderImage({ tenderId, title, className = '' }: TenderI
   return (
     <div className={`relative overflow-hidden rounded-lg ${className}`}>
       <img
-        src={image.url}
+        src={image.remote_url || image.url}
         alt={image.alt ?? displayTitle}
         className="w-full h-full object-cover"
         onError={(e) => {
