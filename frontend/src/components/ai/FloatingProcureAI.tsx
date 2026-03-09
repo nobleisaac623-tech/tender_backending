@@ -107,14 +107,22 @@ export default function FloatingProcureAI() {
         tender_id: tenderId,
       });
 
-      if (res.data.success) {
-        const reply = res.data.reply ?? res.data.data ?? 'No response received.';
-        
-        // Check for action from AI
-        if (res.data.action && res.data.action.action) {
-          handleAIDraftAction(res.data.action);
+      if (res.data?.success) {
+        // API returns { success: true, data: { reply, action } }
+        const payload = (res.data as any).data ?? res.data;
+        const reply: string =
+          (payload && typeof payload.reply === 'string'
+            ? payload.reply
+            : typeof payload === 'string'
+            ? payload
+            : 'No response received.');
+
+        // Check for action from AI (tender/bid drafts)
+        const action = payload?.action;
+        if (action && action.action) {
+          handleAIDraftAction(action);
         }
-        
+
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       } else {
         setMessages(prev => [...prev, {
