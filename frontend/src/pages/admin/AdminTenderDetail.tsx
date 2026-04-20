@@ -46,7 +46,6 @@ export function AdminTenderDetail() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabType>('description');
-  const [visitedTabs, setVisitedTabs] = useState<Set<TabType>>(new Set(['description']));
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [selectedBidId, setSelectedBidId] = useState<number | null>(null);
   const [downloadingDocId, setDownloadingDocId] = useState<number | null>(null);
@@ -331,7 +330,6 @@ export function AdminTenderDetail() {
 
   const handleTabClick = (tab: TabType) => {
     setActiveTab(tab);
-    setVisitedTabs((prev) => new Set([...prev, tab]));
   };
 
   const statusColors: Record<string, { bg: string; text: string }> = {
