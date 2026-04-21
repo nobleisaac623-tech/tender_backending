@@ -20,15 +20,9 @@ $corsFile = $baseDir . '/config/cors.php';
 if (file_exists($corsFile)) {
     require_once $corsFile;
 } else {
-    // CORS file missing - return error
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'error' => 'CORS configuration file not found',
-        'expected_path' => $corsFile
-    ]);
-    exit;
+    error_log("CORS file missing: " . $corsFile);
+    // Don't fail hard on CORS missing - just log
+    // http_response_code(500);  // Commented out
 }
 
 // Set JSON content type for API responses
@@ -61,17 +55,22 @@ if (strpos($uri, '/api/') === 0) {
         $filePath = $apiDir . $apiPath;
         
         if (file_exists($filePath) && is_file($filePath)) {
-            try {
+try {
                 require $filePath;
                 exit;
             } catch (Throwable $e) {
+                // Log full error to Railway logs
+                error_log("API Error in router.php: " . $e->getMessage());
+                error_log("File: " . $e->getFile() . ", Line: " . $e->getLine());
+                error_log("Trace: " . $e->getTraceAsString());
+                
                 http_response_code(500);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Error loading API endpoint',
-                    'message' => $e->getMessage(),
+                    'error' => 'Error loading API endpoint: ' . $e->getMessage(),
                     'file' => $e->getFile(),
-                    'line' => $e->getLine()
+                    'line' => $e->getLine(),
+'debug' => (getenv('APP_DEBUG') || isset($_ENV['APP_DEBUG']) ? true : false)  // Remove in prod
                 ]);
                 exit;
             }

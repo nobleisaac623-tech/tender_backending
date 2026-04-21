@@ -48,7 +48,6 @@ import { SupplierPerformance } from '@/pages/supplier/SupplierPerformance';
 import { SupplierNotifications } from '@/pages/supplier/SupplierNotifications';
 
 const queryClient = new QueryClient();
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>

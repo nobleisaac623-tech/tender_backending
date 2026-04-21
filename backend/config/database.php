@@ -56,20 +56,20 @@ function getEnvVar(string $name, string $default = ''): string
 // Railway provides: MYSQLHOST, MYSQLPORT, MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD
 // Also support: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS
 
-// Get host - check various Railway MySQL variable formats
-$host = getEnvVar('MYSQLHOST') ?: getEnvVar('MYSQL_HOST') ?: getEnvVar('DB_HOST') ?: 'localhost';
+// Get host - prioritize DB_* then Railway MYSQL*
+$host = getEnvVar('DB_HOST') ?: getEnvVar('MYSQL_HOST') ?: getEnvVar('MYSQLHOST') ?: 'localhost';
 
-// Get port - check various Railway MySQL variable formats
-$port = getEnvVar('MYSQLPORT') ?: getEnvVar('MYSQL_PORT') ?: getEnvVar('DB_PORT') ?: '3306';
+// Get port
+$port = getEnvVar('DB_PORT') ?: getEnvVar('MYSQL_PORT') ?: getEnvVar('MYSQLPORT') ?: '3306';
 
-// Get database name - check various Railway MySQL variable formats
-$name = getEnvVar('MYSQLDATABASE') ?: getEnvVar('MYSQL_DATABASE') ?: getEnvVar('DB_NAME') ?: 'railway';
+// Get database name
+$name = getEnvVar('DB_NAME') ?: getEnvVar('MYSQL_DATABASE') ?: getEnvVar('MYSQLDATABASE') ?: 'railway';
 
-// Get username - check various Railway MySQL variable formats
-$user = getEnvVar('MYSQLUSER') ?: getEnvVar('MYSQL_USER') ?: getEnvVar('DB_USER') ?: 'root';
+// Get username
+$user = getEnvVar('DB_USER') ?: getEnvVar('MYSQL_USER') ?: getEnvVar('MYSQLUSER') ?: 'root';
 
-// Get password - check various Railway MySQL variable formats
-$pass = getEnvVar('MYSQLPASSWORD') ?: getEnvVar('MYSQL_PASSWORD') ?: getEnvVar('DB_PASS') ?: '';
+// Get password
+$pass = getEnvVar('DB_PASS') ?: getEnvVar('MYSQL_PASSWORD') ?: getEnvVar('MYSQLPASSWORD') ?: '';
 
 // Build DSN
 $dsn = "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4";
@@ -84,21 +84,27 @@ try {
     // Using $GLOBALS ensures PDO is accessible across all include scopes
     $GLOBALS['pdo'] = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
-    // Log error server-side but don't expose sensitive data
-    error_log("Database connection failed: " . $e->getMessage());
+    // Detailed logging for Railway debugging
+    error_log("=== DB Connection FAILED ===");
+    error_log("Host: " . $host);
+    error_log("Port: " . $port);
+    error_log("DB: " . $name);
+    error_log("User: " . $user);
+    error_log("Error: " . $e->getMessage());
+    error_log("Code: " . $e->getCode());
+    error_log("======================");
     
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode([
         'success' => false, 
         'message' => 'Database connection failed',
-        'debug' => [
-            'host' => $host,
-            'port' => $port,
-            'database' => $name,
-            'user' => $user
-            // Note: password not included for security
-        ]
+'debug' => (getenv('APP_DEBUG') || isset($_ENV['APP_DEBUG']) ? true : false),
+        'host' => $host,
+        'port' => $port,
+        'database' => $name,
+        'user' => $user,
+        'error_code' => $e->getCode()
     ]);
     exit;
 }
