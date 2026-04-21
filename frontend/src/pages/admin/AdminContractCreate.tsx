@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,9 +46,14 @@ export function AdminContractCreate() {
 
   const selectedTenderId = watch('tender_id');
   const selectedTender = awardedTenders.find((t) => t.tender_id === selectedTenderId);
-  if (selectedTender && watch('supplier_id') !== selectedTender.supplier_id) {
-    setValue('supplier_id', selectedTender.supplier_id);
-  }
+
+  useEffect(() => {
+    if (selectedTender) {
+      setValue('supplier_id', selectedTender.supplier_id);
+    } else if (selectedTenderId === 0) {
+      setValue('supplier_id', 0);
+    }
+  }, [selectedTender, selectedTenderId, setValue]);
 
   const createMutation = useMutation({
     mutationFn: (data: FormData) =>
@@ -95,7 +100,12 @@ export function AdminContractCreate() {
                 <select
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                   value={watch('tender_id') || ''}
-                  onChange={(e) => setValue('tender_id', parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => {
+                    const tid = parseInt(e.target.value, 10) || 0;
+                    setValue('tender_id', tid);
+                    const t = awardedTenders.find((x) => x.tender_id === tid);
+                    setValue('supplier_id', t ? t.supplier_id : 0);
+                  }}
                 >
                   <option value="">Select awarded tender (no contract yet)</option>
                   {awardedTenders.map((t) => (

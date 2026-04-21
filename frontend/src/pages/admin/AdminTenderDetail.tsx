@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tendersService } from '@/services/tenders';
 import { bidsService } from '@/services/bids';
+import { evaluationsService } from '@/services/evaluations';
 // import { contractService } from '@/services/contractService'; // reserved for future use
 // import { reportsService } from '@/services/reports'; // reserved for future use
 import { getCategories } from '@/services/categories';
@@ -48,10 +49,12 @@ export function AdminTenderDetail() {
   const [activeTab, setActiveTab] = useState<TabType>('description');
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [selectedBidId, setSelectedBidId] = useState<number | null>(null);
+  const [scoreDetailBidId, setScoreDetailBidId] = useState<number | null>(null);
   const [downloadingDocId, setDownloadingDocId] = useState<number | null>(null);
   const [tenderDocUploading, setTenderDocUploading] = useState(false);
   const [downloadingTenderDocId, setDownloadingTenderDocId] = useState<number | null>(null);
   const [removingTenderDocId, setRemovingTenderDocId] = useState<number | null>(null);
+  const [evaluationMode, setEvaluationMode] = useState<'manual' | 'ai_auto' | null>(null);
   const tenderDocInputRef = useRef<HTMLInputElement>(null);
 
   const { data: tender, isLoading } = useQuery({
@@ -89,6 +92,12 @@ export function AdminTenderDetail() {
     enabled: bidModalOpen && typeof selectedBidId === 'number' && selectedBidId > 0,
     staleTime: 0,
   });
+  const { data: evaluationsData = [] } = useQuery({
+    queryKey: ['evaluations', tenderId],
+    queryFn: () => evaluationsService.list({ tender_id: tenderId }),
+    enabled: tenderId > 0 && (tender?.status === 'closed' || tender?.status === 'evaluated' || tender?.status === 'awarded'),
+    staleTime: 10000,
+  });
 
   // contractId query - commented out as not currently used
   // const { data: contractId } = useQuery({
@@ -122,6 +131,21 @@ export function AdminTenderDetail() {
       window.location.href = '/admin/tenders';
     },
     onError: (e) => toastError(e instanceof Error ? e.message : 'Failed'),
+  });
+
+  const finalizeEvaluationMutation = useMutation({
+    mutationFn: () => evaluationsService.finalize(tenderId),
+    onSuccess: (data) => {
+      const mode = data?.evaluation_mode === 'ai_auto' ? 'ai_auto' : 'manual';
+      setEvaluationMode(mode);
+      toastSuccess(
+        mode === 'ai_auto'
+          ? 'Evaluation finalized (AI auto-evaluation used: no evaluator assigned)'
+          : 'Evaluation finalized (manual evaluator scores)'
+      );
+      queryClient.invalidateQueries({ queryKey: ['tender', tenderId] });
+    },
+    onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to finalize evaluation'),
   });
 
   const [editing, setEditing] = useState(false);
@@ -331,6 +355,46 @@ export function AdminTenderDetail() {
   const handleTabClick = (tab: TabType) => {
     setActiveTab(tab);
   };
+
+  const rankingRows = (() => {
+    const perBid = new Map<number, { weighted: number; totalWeight: number }>();
+    for (const e of evaluationsData as any[]) {
+      const bidId = Number(e.bid_id);
+      const criteriaId = Number(e.criteria_id);
+      const key = `${bidId}:${criteriaId}`;
+      // compute average by bid+criteria in one pass
+      // accumulate in temp map attached to function scope
+      (perBid as any).__crit ||= new Map<string, { total: number; count: number; weight: number }>();
+      const critMap: Map<string, { total: number; count: number; weight: number }> = (perBid as any).__crit;
+      const cur = critMap.get(key) || { total: 0, count: 0, weight: Number(e.weight ?? 1) };
+      cur.total += Number(e.score ?? 0);
+      cur.count += 1;
+      cur.weight = Number(e.weight ?? cur.weight ?? 1);
+      critMap.set(key, cur);
+    }
+    const critMap: Map<string, { total: number; count: number; weight: number }> = ((perBid as any).__crit || new Map());
+    for (const [k, v] of critMap.entries()) {
+      const [bidIdRaw] = k.split(':');
+      const bidId = Number(bidIdRaw);
+      const b = perBid.get(bidId) || { weighted: 0, totalWeight: 0 };
+      const avg = v.count > 0 ? v.total / v.count : 0;
+      b.weighted += avg * v.weight;
+      b.totalWeight += v.weight;
+      perBid.set(bidId, b);
+    }
+    const rows = (bidsData?.items ?? []).map((b) => {
+      const agg = perBid.get(b.id);
+      const weightedScore = agg && agg.totalWeight > 0 ? Number((agg.weighted / agg.totalWeight).toFixed(2)) : 0;
+      return { bid: b, weightedScore };
+    });
+    rows.sort((a, b) => b.weightedScore - a.weightedScore);
+    return rows.map((r, idx) => ({ ...r, rank: idx + 1 }));
+  })();
+
+  const scoreModalBid = scoreDetailBidId ? rankingRows.find((r) => r.bid.id === scoreDetailBidId)?.bid ?? null : null;
+  const scoreModalRows = scoreDetailBidId
+    ? (evaluationsData as any[]).filter((e) => Number(e.bid_id) === scoreDetailBidId)
+    : [];
 
   const statusColors: Record<string, { bg: string; text: string }> = {
     draft: { bg: '#64748b', text: '#ffffff' },
@@ -663,6 +727,16 @@ export function AdminTenderDetail() {
               </div>
             ) : (
               <div>
+                {(evaluationMode || tender.status === 'evaluated' || tender.status === 'awarded') && (
+                  <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                    evaluationMode === 'ai_auto'
+                      ? 'border-purple-200 bg-purple-50 text-purple-800'
+                      : 'border-blue-200 bg-blue-50 text-blue-800'
+                  }`}>
+                    <strong>Evaluation mode:</strong>{' '}
+                    {evaluationMode === 'ai_auto' ? 'AI auto-evaluation (no evaluator assigned)' : 'Manual evaluator scoring'}
+                  </div>
+                )}
                 {/* Progress */}
                 <div className="mb-4 rounded-lg bg-blue-50 p-4">
                   <p className="text-sm text-blue-800">2 of 3 evaluators have submitted scores</p>
@@ -678,35 +752,103 @@ export function AdminTenderDetail() {
                       <th className="pb-2 text-left">Supplier</th>
                       <th className="pb-2 text-left">Company</th>
                       <th className="pb-2 text-right">Weighted Score</th>
-                      <th className="pb-2 text-right">Quality</th>
-                      <th className="pb-2 text-right">Price</th>
-                      <th className="pb-2 text-right">Experience</th>
                       <th className="pb-2 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-l-4 border-l-yellow-400 bg-yellow-50">
-                      <td className="py-2">🥇 1</td>
-                      <td className="py-2">Kwame A.</td>
-                      <td className="py-2">Acme Ltd</td>
-                      <td className="py-2 text-right font-bold">87.5</td>
-                      <td className="py-2 text-right">90</td>
-                      <td className="py-2 text-right">85</td>
-                      <td className="py-2 text-right">80</td>
-                      <td className="py-2 text-center"><Button size="sm" variant="outline">View Scores</Button></td>
-                    </tr>
-                    <tr className="border-b border-l-4 border-l-gray-300 bg-gray-50">
-                      <td className="py-2">🥈 2</td>
-                      <td className="py-2">Abena M.</td>
-                      <td className="py-2">BuildCo</td>
-                      <td className="py-2 text-right font-bold">76.2</td>
-                      <td className="py-2 text-right">75</td>
-                      <td className="py-2 text-right">78</td>
-                      <td className="py-2 text-right">75</td>
-                      <td className="py-2 text-center"><Button size="sm" variant="outline">View Scores</Button></td>
-                    </tr>
+                    {rankingRows.length === 0 ? (
+                      <tr>
+                        <td className="py-4 text-center text-gray-500" colSpan={5}>No evaluation scores available yet.</td>
+                      </tr>
+                    ) : rankingRows.map((r) => (
+                      <tr key={r.bid.id} className={`border-b ${r.rank === 1 ? 'border-l-4 border-l-yellow-400 bg-yellow-50' : ''}`}>
+                        <td className="py-2">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : ''} {r.rank}</td>
+                        <td className="py-2">{r.bid.supplier_name ?? '—'}</td>
+                        <td className="py-2">{r.bid.company_name ?? '—'}</td>
+                        <td className="py-2 text-right font-bold">{r.weightedScore.toFixed(2)}</td>
+                        <td className="py-2 text-center">
+                          <Button size="sm" variant="outline" onClick={() => setScoreDetailBidId(r.bid.id)}>View Scores</Button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+                {scoreDetailBidId && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                    onMouseDown={(e) => {
+                      if (e.target === e.currentTarget) setScoreDetailBidId(null);
+                    }}
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
+                      <div className="flex items-center justify-between border-b px-5 py-4">
+                        <div>
+                          <h4 className="text-lg font-semibold">Score Breakdown</h4>
+                          <p className="text-sm text-gray-500">
+                            Bid #{scoreDetailBidId} • {(scoreModalBid as any)?.company_name ?? (scoreModalBid as any)?.supplier_name ?? '—'}
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => setScoreDetailBidId(null)}>Close</Button>
+                      </div>
+                      <div className="max-h-[75vh] overflow-auto p-5">
+                        <div className="mb-3 text-sm text-gray-600">
+                          Weighted total:{' '}
+                          <span className="font-semibold text-gray-900">
+                            {(rankingRows.find((r) => r.bid.id === scoreDetailBidId)?.weightedScore ?? 0).toFixed(2)}
+                          </span>
+                        </div>
+                        {scoreModalRows.length === 0 ? (
+                          <p className="text-sm text-gray-600">No criterion scores found for this bid.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {Array.from(
+                              scoreModalRows.reduce((m: Map<number, any[]>, row: any) => {
+                                const k = Number(row.criteria_id);
+                                const arr = m.get(k) || [];
+                                arr.push(row);
+                                m.set(k, arr);
+                                return m;
+                              }, new Map<number, any[]>())
+                            ).map(([criteriaId, rows]) => {
+                              const first = rows[0];
+                              const avg = rows.reduce((s, x) => s + Number(x.score ?? 0), 0) / rows.length;
+                              return (
+                                <div key={criteriaId} className="rounded-lg border p-3">
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-medium">{first.criteria_name ?? `Criteria ${criteriaId}`}</p>
+                                    <p className="text-sm text-gray-600">
+                                      Avg: <span className="font-semibold">{avg.toFixed(2)}</span> / {Number(first.max_score ?? 100)}
+                                      {' '}• Weight: {Number(first.weight ?? 1)}
+                                    </p>
+                                  </div>
+                                  <div className="mt-2 space-y-2">
+                                    {rows.map((r: any) => (
+                                      <div key={r.id} className="rounded bg-gray-50 px-2 py-2 text-sm">
+                                        <p>
+                                          Evaluator #{r.evaluator_id}: <span className="font-medium">{r.score}</span>
+                                        </p>
+                                        {r.comment && <p className="mt-1 text-gray-600">{r.comment}</p>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {(tender.status === 'closed' || tender.status === 'published') && (
+                  <div className="mt-4 flex gap-2">
+                    <Button onClick={() => finalizeEvaluationMutation.mutate()} disabled={finalizeEvaluationMutation.isPending}>
+                      {finalizeEvaluationMutation.isPending ? 'Finalizing...' : 'Finalize Evaluation'}
+                    </Button>
+                  </div>
+                )}
                 {tender.status === 'evaluated' && (
                   <div className="mt-4 flex gap-2">
                     <Button>Award Tender</Button>
