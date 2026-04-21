@@ -88,6 +88,17 @@ export function SupplierContractDetail() {
     { label: 'Price Adjustment Terms', value: contract.price_adjustment_terms || '' },
     { label: 'Termination Terms', value: contract.termination_terms || '' },
   ];
+  const missingForSigning = [
+    { label: 'Contract date', ok: !!contract.contract_date },
+    { label: 'Effective date', ok: !!contract.effective_date },
+    { label: 'Buyer name & address', ok: !!contract.buyer_name_address?.trim() },
+    { label: 'Supplier name & address', ok: !!contract.supplier_name_address?.trim() },
+    { label: 'Specification of goods/services', ok: !!contract.specification_of_goods?.trim() },
+    { label: 'Payment terms & methods', ok: !!contract.payment_terms_methods?.trim() },
+    { label: 'Delivery terms', ok: !!contract.delivery_terms?.trim() },
+    { label: 'Price terms', ok: !!contract.price_terms?.trim() },
+    { label: 'Termination terms', ok: !!contract.termination_terms?.trim() },
+  ].filter((x) => !x.ok);
 
   return (
     <div className="p-6">
@@ -144,7 +155,15 @@ export function SupplierContractDetail() {
         {!contract.signed_by_supplier && !['completed', 'terminated'].includes(contract.status) && (
           <Card className="mb-6">
             <CardContent className="pt-6">
-              <Button onClick={() => signMutation.mutate()} disabled={signMutation.isPending}>
+              {missingForSigning.length > 0 && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <strong>Cannot sign yet.</strong> Missing required contract sections:
+                  <ul className="mt-2 list-disc pl-5">
+                    {missingForSigning.map((m) => <li key={m.label}>{m.label}</li>)}
+                  </ul>
+                </div>
+              )}
+              <Button onClick={() => signMutation.mutate()} disabled={signMutation.isPending || missingForSigning.length > 0}>
                 Sign Contract
               </Button>
             </CardContent>

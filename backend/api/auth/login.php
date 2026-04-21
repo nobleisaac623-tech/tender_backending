@@ -45,7 +45,17 @@ if (!$user || !password_verify($password, $user['password'])) {
     jsonError('Invalid email or password', 401);
 }
 
-// Check account status BEFORE issuing JWT - only for suppliers
+// Check account status BEFORE issuing JWT
+if ($user['role'] === 'supplier' || $user['role'] === 'evaluator') {
+    if (($user['status'] ?? '') === 'pending') {
+        jsonError('Account pending approval', 403, ['error_code' => 'ACCOUNT_PENDING']);
+    }
+    if (($user['status'] ?? '') === 'suspended') {
+        jsonError('Account suspended', 403, ['error_code' => 'ACCOUNT_SUSPENDED']);
+    }
+}
+
+// Supplier-only: load profile to provide reasons (rejection/suspension)
 if ($user['role'] === 'supplier') {
 
     // Load supplier profile for reasons (rejection/suspension)

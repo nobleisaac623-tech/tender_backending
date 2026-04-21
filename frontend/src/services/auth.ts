@@ -45,4 +45,11 @@ export const authService = {
     const res = await api.post<{ success: boolean; data: { token: string; user: User } }>('/auth/refresh');
     return res.data.data;
   },
+  async setPassword(data: { token: string; password: string }) {
+    const res = await api.post<{ success: boolean; data: { message: string; status?: string; role?: string } }>(
+      '/auth/set-password',
+      data
+    );
+    return res.data.data;
+  },
 };

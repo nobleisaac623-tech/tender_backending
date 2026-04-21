@@ -19,16 +19,15 @@ export const usersService = {
     throw new Error(res.data.message || 'Failed to fetch evaluators');
   },
 
-  createUser: async (data: {
-    name: string;
-    email: string;
-    password: string;
-    role: 'admin' | 'evaluator' | 'supplier';
-  }): Promise<User> => {
-    const res = await api.post('/users/create', data);
-    if (res.data.success) {
-      return res.data.user;
-    }
-    throw new Error(res.data.message || 'Failed to create user');
+  inviteEvaluator: async (data: { name: string; email: string }): Promise<{ user_id: number; email_sent: boolean; message: string }> => {
+    const res = await api.post('/users/invite-evaluator', data);
+    if (res.data.success) return res.data.data;
+    throw new Error(res.data.message || 'Failed to invite evaluator');
+  },
+
+  approveUser: async (user_id: number): Promise<void> => {
+    const res = await api.post('/users/approve', { user_id });
+    if (res.data.success) return;
+    throw new Error(res.data.message || 'Failed to approve user');
   },
 };

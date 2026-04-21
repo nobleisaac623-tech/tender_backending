@@ -149,11 +149,15 @@ export function AdminTenderDetail() {
   });
   const awardMutation = useMutation({
     mutationFn: (bidId: number) => tendersService.award(tenderId, bidId),
-    onSuccess: () => {
+    onSuccess: (data) => {
       toastSuccess('Tender awarded successfully');
       queryClient.invalidateQueries({ queryKey: ['tender', tenderId] });
       queryClient.invalidateQueries({ queryKey: ['bids', tenderId] });
       queryClient.invalidateQueries({ queryKey: ['evaluations', tenderId] });
+      if (data?.contract_id) {
+        // Move admin straight into the drafted contract for review/edit/sign
+        window.location.href = `/admin/contracts/${data.contract_id}`;
+      }
     },
     onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to award tender'),
   });

@@ -545,6 +545,21 @@ export function AdminContractDetail() {
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [signConfirmOpen, setSignConfirmOpen] = useState(false);
   const [uploadType, setUploadType] = useState('contract');
+  const [clausesEditing, setClausesEditing] = useState(false);
+  const [clausesDraft, setClausesDraft] = useState({
+    contract_date: '',
+    effective_date: '',
+    buyer_name_address: '',
+    supplier_name_address: '',
+    specification_of_goods: '',
+    payment_terms_methods: '',
+    warranty_terms: '',
+    breach_and_remedies: '',
+    delivery_terms: '',
+    price_terms: '',
+    price_adjustment_terms: '',
+    termination_terms: '',
+  });
   const [ratingForm, setRatingForm] = useState({ 
     quality_score: 1, delivery_score: 1, communication_score: 1, compliance_score: 1, comments: '' 
   });
@@ -580,6 +595,20 @@ export function AdminContractDetail() {
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
     },
     onError: (e) => toastError(e instanceof Error ? e.message : 'Upload failed'),
+  });
+
+  const updateClausesMutation = useMutation({
+    mutationFn: () =>
+      contractService.update({
+        id: contractId,
+        ...clausesDraft,
+      } as any),
+    onSuccess: () => {
+      toastSuccess('Contract clauses updated');
+      queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
+      setClausesEditing(false);
+    },
+    onError: (e) => toastError(e instanceof Error ? e.message : 'Failed to update clauses'),
   });
 
   const addMilestoneMutation = useMutation({
@@ -630,6 +659,11 @@ export function AdminContractDetail() {
     );
   }
 
+  // Initialize clause editor once contract is loaded
+  if (!clausesEditing && clausesDraft.contract_date === '' && contract.contract_date) {
+    // no-op: keep drafts empty until user chooses Edit
+  }
+
   const bothSigned = contract.signed_by_admin && contract.signed_by_supplier;
   const canRate = contract.status === 'completed' && !contractRating;
   const canSign = !contract.signed_by_admin && !['completed', 'terminated'].includes(contract.status);
@@ -657,6 +691,17 @@ export function AdminContractDetail() {
     { label: 'Price Adjustment Terms', value: contract.price_adjustment_terms || '' },
     { label: 'Termination Terms', value: contract.termination_terms || '' },
   ];
+  const missingForSigning = [
+    { label: 'Contract date', ok: !!contract.contract_date },
+    { label: 'Effective date', ok: !!contract.effective_date },
+    { label: 'Buyer name & address', ok: !!contract.buyer_name_address?.trim() },
+    { label: 'Supplier name & address', ok: !!contract.supplier_name_address?.trim() },
+    { label: 'Specification of goods/services', ok: !!contract.specification_of_goods?.trim() },
+    { label: 'Payment terms & methods', ok: !!contract.payment_terms_methods?.trim() },
+    { label: 'Delivery terms', ok: !!contract.delivery_terms?.trim() },
+    { label: 'Price terms', ok: !!contract.price_terms?.trim() },
+    { label: 'Termination terms', ok: !!contract.termination_terms?.trim() },
+  ].filter((x) => !x.ok);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -740,7 +785,7 @@ export function AdminContractDetail() {
               signedAt={contract.admin_signed_at || undefined}
               name="System Admin"
               role="Procurement Officer"
-              canSign={canSign}
+              canSign={canSign && missingForSigning.length === 0}
               onSign={() => setSignConfirmOpen(true)}
               isSigning={signMutation.isPending}
             />
@@ -772,21 +817,105 @@ export function AdminContractDetail() {
             </Card>
           )}
 
-          {clauseItems.some((c) => c.value && c.value !== '—') && (
-            <Card className="border border-slate-100 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">Contract Clauses</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {clauseItems.filter((c) => c.value && c.value !== '—').map((c) => (
-                  <div key={c.label}>
-                    <p className="text-xs font-semibold uppercase text-slate-500">{c.label}</p>
-                    <p className="whitespace-pre-wrap text-sm text-slate-700">{c.value}</p>
+          <Card className="border border-slate-100 shadow-sm">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-base font-semibold">Contract Clauses</CardTitle>
+              {!clausesEditing ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setClausesDraft({
+                      contract_date: contract.contract_date || '',
+                      effective_date: contract.effective_date || '',
+                      buyer_name_address: contract.buyer_name_address || '',
+                      supplier_name_address: contract.supplier_name_address || '',
+                      specification_of_goods: contract.specification_of_goods || '',
+                      payment_terms_methods: contract.payment_terms_methods || '',
+                      warranty_terms: contract.warranty_terms || '',
+                      breach_and_remedies: contract.breach_and_remedies || '',
+                      delivery_terms: contract.delivery_terms || '',
+                      price_terms: contract.price_terms || '',
+                      price_adjustment_terms: contract.price_adjustment_terms || '',
+                      termination_terms: contract.termination_terms || '',
+                    });
+                    setClausesEditing(true);
+                  }}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => updateClausesMutation.mutate()} disabled={updateClausesMutation.isPending}>
+                    {updateClausesMutation.isPending ? 'Saving…' : 'Save'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setClausesEditing(false)} disabled={updateClausesMutation.isPending}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {missingForSigning.length > 0 && !clausesEditing && (
+                <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <strong>Signing is blocked.</strong> Missing required sections:
+                  <ul className="mt-2 list-disc pl-5">
+                    {missingForSigning.map((m) => <li key={m.label}>{m.label}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {clausesEditing ? (
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                      <Label>Contract date *</Label>
+                      <Input type="date" className="mt-1" value={clausesDraft.contract_date} onChange={(e) => setClausesDraft((p) => ({ ...p, contract_date: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label>Effective date *</Label>
+                      <Input type="date" className="mt-1" value={clausesDraft.effective_date} onChange={(e) => setClausesDraft((p) => ({ ...p, effective_date: e.target.value }))} />
+                    </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                  {[
+                    { key: 'buyer_name_address', label: 'Buyer name & address *', rows: 2 },
+                    { key: 'supplier_name_address', label: 'Supplier name & address *', rows: 2 },
+                    { key: 'specification_of_goods', label: 'Specification of goods/services *', rows: 3 },
+                    { key: 'payment_terms_methods', label: 'Payment terms & methods *', rows: 3 },
+                    { key: 'warranty_terms', label: 'Warranty terms', rows: 2 },
+                    { key: 'breach_and_remedies', label: 'Breach & remedies', rows: 3 },
+                    { key: 'delivery_terms', label: 'Delivery terms *', rows: 2 },
+                    { key: 'price_terms', label: 'Price terms *', rows: 2 },
+                    { key: 'price_adjustment_terms', label: 'Price adjustment terms', rows: 2 },
+                    { key: 'termination_terms', label: 'Termination terms *', rows: 3 },
+                  ].map((f) => (
+                    <div key={f.key}>
+                      <Label>{f.label}</Label>
+                      <textarea
+                        rows={f.rows}
+                        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        value={(clausesDraft as any)[f.key]}
+                        onChange={(e) => setClausesDraft((p) => ({ ...p, [f.key]: e.target.value } as any))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {clauseItems.filter((c) => c.value && c.value !== '—').length === 0 ? (
+                    <p className="text-sm text-slate-600">No clause content yet. Click Edit to add the contract clauses.</p>
+                  ) : (
+                    clauseItems.filter((c) => c.value && c.value !== '—').map((c) => (
+                      <div key={c.label}>
+                        <p className="text-xs font-semibold uppercase text-slate-500">{c.label}</p>
+                        <p className="whitespace-pre-wrap text-sm text-slate-700">{c.value}</p>
+                      </div>
+                    ))
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Milestone Timeline */}
           <MilestoneTimeline

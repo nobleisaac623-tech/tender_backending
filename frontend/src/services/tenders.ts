@@ -41,7 +41,12 @@ export const tendersService = {
     return api.post('/tenders/close', { id });
   },
   award(tenderId: number, bidId: number) {
-    return api.post<{ success: boolean; data: { supplier_id: number } }>('/tenders/award', { tender_id: tenderId, bid_id: bidId }).then((r) => r.data.data);
+    return api
+      .post<{ success: boolean; data: { supplier_id: number; contract_id?: number | null } }>(
+        '/tenders/award',
+        { tender_id: tenderId, bid_id: bidId }
+      )
+      .then((r) => r.data.data);
   },
   addDocument(tenderId: number, file: { filename: string; original_name: string; file_size: number }) {
     return api

@@ -14,7 +14,6 @@ export function AdminEvaluators() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
   });
 
   const { data: evaluators = [], isLoading } = useQuery({
@@ -22,25 +21,31 @@ export function AdminEvaluators() {
     queryFn: usersService.listEvaluators,
   });
 
-  const createMutation = useMutation({
-    mutationFn: usersService.createUser,
+  const inviteMutation = useMutation({
+    mutationFn: usersService.inviteEvaluator,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evaluators'] });
-      setFormData({ name: '', email: '', password: '' });
+      setFormData({ name: '', email: '' });
       setShowForm(false);
-      toastSuccess('Evaluator created successfully');
+      toastSuccess('Invite sent. Evaluator will set password via link.');
     },
     onError: (error: Error) => {
       toastError(error.message);
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: usersService.approveUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evaluators'] });
+      toastSuccess('Evaluator approved');
+    },
+    onError: (error: Error) => toastError(error.message),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({
-      ...formData,
-      role: 'evaluator',
-    });
+    inviteMutation.mutate(formData);
   };
 
   return (
@@ -59,7 +64,7 @@ export function AdminEvaluators() {
       {showForm && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Create New Evaluator</CardTitle>
+            <CardTitle>Invite Evaluator</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,22 +91,10 @@ export function AdminEvaluators() {
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Minimum 6 characters"
-                  required
-                  minLength={6}
-                />
-              </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Evaluator
+                <Button type="submit" disabled={inviteMutation.isPending}>
+                  {inviteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send Invite Link
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
@@ -137,6 +130,7 @@ export function AdminEvaluators() {
                     <th className="pb-3 text-left font-medium">Email</th>
                     <th className="pb-3 text-left font-medium">Status</th>
                     <th className="pb-3 text-left font-medium">Created</th>
+                    <th className="pb-3 text-left font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -152,11 +146,24 @@ export function AdminEvaluators() {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {evaluator.status}
+                          {evaluator.status === 'active' ? 'approved' : 'pending'}
                         </span>
                       </td>
                       <td className="py-3 text-gray-500">
                         {evaluator.created_at ? new Date(evaluator.created_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="py-3">
+                        {evaluator.status === 'pending' ? (
+                          <Button
+                            size="sm"
+                            onClick={() => approveMutation.mutate(evaluator.id)}
+                            disabled={approveMutation.isPending}
+                          >
+                            {approveMutation.isPending ? 'Approving...' : 'Approve'}
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-gray-500">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
