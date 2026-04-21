@@ -8,6 +8,31 @@ import { ExportButton } from '@/components/ui/ExportButton';
 import { toastSuccess } from '@/hooks/useToast';
 import { exportToExcel } from '@/utils/exportExcel';
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(value);
+}
+
+function formatDateTime(value?: string): string {
+  if (!value) return 'Draft';
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function displayBidStatus(status: string): string {
+  const normalized = (status || '').toLowerCase();
+  if (normalized === 'submitted') return 'Submitted';
+  if (normalized === 'under_review') return 'Under review';
+  if (normalized === 'accepted') return 'Accepted';
+  if (normalized === 'rejected') return 'Rejected';
+  if (normalized === 'draft') return 'Draft';
+  return status || 'Unknown';
+}
+
 export function SupplierBids() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useQuery({
@@ -29,7 +54,7 @@ export function SupplierBids() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">My Bids</h1>
         <ExportButton
@@ -47,14 +72,14 @@ export function SupplierBids() {
           <div className="mt-6 space-y-4">
             {data.items.map((b) => (
               <Card key={b.id}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-lg">{b.tender_title ?? `Bid #${b.id}`}</CardTitle>
-                  <Badge variant={b.status === 'submitted' ? 'success' : 'secondary'}>{b.status}</Badge>
+                <CardHeader className="flex flex-col gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle className="text-base sm:text-lg">{b.tender_title ?? `Bid #${b.id}`}</CardTitle>
+                  <Badge variant={b.status === 'submitted' ? 'success' : 'secondary'}>{displayBidStatus(b.status)}</Badge>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">{b.reference_number}</p>
-                  <p className="text-sm text-gray-500">Amount: {b.bid_amount != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(b.bid_amount) : '—'}</p>
-                  <p className="text-sm text-gray-500">Submitted: {b.submitted_at ?? 'Draft'}</p>
+                  <p className="text-sm text-gray-500">Amount: {b.bid_amount != null ? formatUsd(b.bid_amount) : '—'}</p>
+                  <p className="text-sm text-gray-500">Submitted: {formatDateTime(b.submitted_at)}</p>
                 </CardContent>
               </Card>
             ))}

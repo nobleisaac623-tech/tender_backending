@@ -17,7 +17,7 @@ const statusConfig: Record<ContractStatus, { label: string; className: string }>
 };
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'GHS', minimumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(value);
 }
 
 export function SupplierContracts() {
@@ -29,7 +29,7 @@ export function SupplierContracts() {
   });
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">My Contracts</h1>
         <div className="mt-4 flex gap-4">
           <div className="relative flex-1 max-w-xs">
@@ -53,6 +53,9 @@ export function SupplierContracts() {
           <div className="mt-8 rounded-lg border border-dashed border-gray-300 bg-white/50 py-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-2 text-gray-500">You have no contracts yet.</p>
+            <p className="mt-1 text-xs text-gray-400">
+              Once a tender is awarded to you, it will appear here for review and signing.
+            </p>
           </div>
         )}
 
@@ -60,16 +63,16 @@ export function SupplierContracts() {
           <div className="mt-6 space-y-4">
             {contracts.map((c) => (
               <Card key={c.id} className="p-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="font-mono text-sm text-gray-600">{c.contract_number}</p>
-                    <p className="font-medium">{c.title}</p>
-                    <p className="text-sm text-gray-600">{c.tender_title}</p>
+                    <p className="font-medium truncate">{c.title}</p>
+                    <p className="text-sm text-gray-600 truncate">{c.tender_title}</p>
                     <p className="text-sm text-gray-500">
                       {formatCurrency(c.contract_value)} · {c.start_date} – {c.end_date}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig[c.status]?.className ?? 'bg-gray-200'}`}>
                       {statusConfig[c.status]?.label ?? c.status}
                     </span>

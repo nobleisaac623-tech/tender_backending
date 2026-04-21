@@ -68,6 +68,10 @@ function getDeadlineColor(daysLeft: number): string {
   return 'text-red-600';
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(value);
+}
+
 // ── Stat Card Component ─────────────────────────────────────────────────────────
 
 function StatCard({
@@ -157,7 +161,7 @@ function TenderCard({ tender, hasBid }: { tender: any; hasBid: boolean; onBid?: 
           {tender.budget && (
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              Budget: ${tender.budget.toLocaleString()}
+              Budget: {formatUsd(Number(tender.budget))}
             </span>
           )}
           <span className="flex items-center gap-1">
@@ -253,7 +257,7 @@ function BidProgressTracker({ bid }: { bid: any }) {
         <h4 className="font-semibold text-gray-900">{bid.tender_title || `Bid #${bid.id}`}</h4>
         <p className="text-sm text-gray-500">
           {bid.tender_reference && `${bid.tender_reference} • `}
-          {bid.amount && `$${bid.amount.toLocaleString()}`}
+          {bid.amount ? formatUsd(Number(bid.amount)) : ''}
         </p>
       </div>
 
@@ -539,7 +543,7 @@ export function SupplierDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {bids.slice(0, 4).map((tender: any) => (
+                  {tenders.slice(0, 4).map((tender: any) => (
                     <TenderCard
                       key={tender.id}
                       tender={tender}

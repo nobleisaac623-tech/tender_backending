@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -21,6 +21,7 @@ import type { Notification } from '@/types';
 import { cn } from '@/utils/cn';
 import FloatingProcureAI from '@/components/ai/FloatingProcureAI';
 import { InstallAppButton } from '@/components/InstallAppButton';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 const SIDEBAR_WIDTH = 260;
 
@@ -136,7 +137,19 @@ export function SupplierLayout() {
   });
 
   const unreadCount = notificationsData?.total ?? 0;
+  const [prevUnreadCount, setPrevUnreadCount] = useState<number | null>(null);
   const recentNotifications: Notification[] = notificationsData?.items?.slice(0, 5) ?? [];
+
+  useEffect(() => {
+    if (prevUnreadCount === null) {
+      setPrevUnreadCount(unreadCount);
+      return;
+    }
+    if (unreadCount > prevUnreadCount) {
+      playNotificationSound();
+    }
+    setPrevUnreadCount(unreadCount);
+  }, [unreadCount, prevUnreadCount]);
 
   // Get supplier profile for company name and status
   const { data: profileData } = useQuery({

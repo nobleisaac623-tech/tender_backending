@@ -98,6 +98,18 @@ export function AdminTenderDetail() {
     enabled: tenderId > 0 && (tender?.status === 'closed' || tender?.status === 'evaluated' || tender?.status === 'awarded'),
     staleTime: 10000,
   });
+  const { data: assignedEvaluators = [] } = useQuery({
+    queryKey: ['tender-evaluators', tenderId],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: Array<{ evaluator_id: number; name: string; email: string }> }>(
+        '/tenders/evaluators',
+        { params: { tender_id: tenderId } }
+      );
+      return res.data.data ?? [];
+    },
+    enabled: tenderId > 0 && (tender?.status === 'closed' || tender?.status === 'evaluated' || tender?.status === 'awarded'),
+    staleTime: 10000,
+  });
 
   // contractId query - commented out as not currently used
   // const { data: contractId } = useQuery({
@@ -371,6 +383,10 @@ export function AdminTenderDetail() {
   };
 
   const rankingRows = (() => {
+    const normalizeWeight = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : 1;
+    };
     const perBid = new Map<number, { weighted: number; totalWeight: number }>();
     for (const e of evaluationsData as any[]) {
       const bidId = Number(e.bid_id);
@@ -380,10 +396,10 @@ export function AdminTenderDetail() {
       // accumulate in temp map attached to function scope
       (perBid as any).__crit ||= new Map<string, { total: number; count: number; weight: number }>();
       const critMap: Map<string, { total: number; count: number; weight: number }> = (perBid as any).__crit;
-      const cur = critMap.get(key) || { total: 0, count: 0, weight: Number(e.weight ?? 1) };
+      const cur = critMap.get(key) || { total: 0, count: 0, weight: normalizeWeight(e.weight) };
       cur.total += Number(e.score ?? 0);
       cur.count += 1;
-      cur.weight = Number(e.weight ?? cur.weight ?? 1);
+      cur.weight = normalizeWeight(e.weight ?? cur.weight);
       critMap.set(key, cur);
     }
     const critMap: Map<string, { total: number; count: number; weight: number }> = ((perBid as any).__crit || new Map());
@@ -396,11 +412,15 @@ export function AdminTenderDetail() {
       b.totalWeight += v.weight;
       perBid.set(bidId, b);
     }
-    const rows = (bidsData?.items ?? []).map((b) => {
-      const agg = perBid.get(b.id);
-      const weightedScore = agg && agg.totalWeight > 0 ? Number((agg.weighted / agg.totalWeight).toFixed(2)) : 0;
-      return { bid: b, weightedScore };
-    });
+    // Only rank bids that actually have evaluation rows.
+    const scoredBidIds = new Set<number>(Array.from(perBid.keys()));
+    const rows = (bidsData?.items ?? [])
+      .filter((b) => scoredBidIds.has(b.id))
+      .map((b) => {
+        const agg = perBid.get(b.id);
+        const weightedScore = agg && agg.totalWeight > 0 ? Number((agg.weighted / agg.totalWeight).toFixed(2)) : 0;
+        return { bid: b, weightedScore };
+      });
     rows.sort((a, b) => b.weightedScore - a.weightedScore);
     return rows.map((r, idx) => ({ ...r, rank: idx + 1 }));
   })();
@@ -409,6 +429,13 @@ export function AdminTenderDetail() {
   const scoreModalRows = scoreDetailBidId
     ? (evaluationsData as any[]).filter((e) => Number(e.bid_id) === scoreDetailBidId)
     : [];
+  const assignedEvaluatorCount = assignedEvaluators.length;
+  const submittedEvaluatorCount = assignedEvaluatorCount === 0
+    ? 0
+    : new Set((evaluationsData as any[]).map((e) => Number(e.evaluator_id))).size;
+  const submissionPercent = assignedEvaluatorCount > 0
+    ? Math.min(100, Math.round((submittedEvaluatorCount / assignedEvaluatorCount) * 100))
+    : 0;
 
   const statusColors: Record<string, { bg: string; text: string }> = {
     draft: { bg: '#64748b', text: '#ffffff' },
@@ -753,9 +780,13 @@ export function AdminTenderDetail() {
                 )}
                 {/* Progress */}
                 <div className="mb-4 rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm text-blue-800">2 of 3 evaluators have submitted scores</p>
+                  <p className="text-sm text-blue-800">
+                    {assignedEvaluatorCount === 0
+                      ? 'No evaluators assigned. Finalize will use AI auto-evaluation.'
+                      : `${submittedEvaluatorCount} of ${assignedEvaluatorCount} evaluators have submitted scores`}
+                  </p>
                   <div className="mt-2 h-2 w-full rounded-full bg-blue-200">
-                    <div className="h-2 rounded-full bg-blue-600" style={{ width: '67%' }} />
+                    <div className="h-2 rounded-full bg-blue-600" style={{ width: `${submissionPercent}%` }} />
                   </div>
                 </div>
                 {/* Leaderboard */}

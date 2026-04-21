@@ -20,7 +20,6 @@ export function SupplierTenderDetail() {
   const [bidAmount, setBidAmount] = useState('');
   const [proposal, setProposal] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('');
-  const [submit, setSubmit] = useState(false);
   const [currentBidId, setCurrentBidId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -59,17 +58,17 @@ export function SupplierTenderDetail() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (shouldSubmit: boolean) =>
       bidsService.submit({
         tender_id: tenderId,
         bid_amount: bidAmount ? parseFloat(bidAmount) : undefined,
         technical_proposal: proposal || undefined,
         delivery_time: deliveryTime || undefined,
-        submit,
+        submit: shouldSubmit,
       }),
     onSuccess: (res) => {
       if (res?.id) setCurrentBidId(res.id);
-      toastSuccess(submit ? 'Bid submitted' : 'Bid saved as draft');
+      toastSuccess(res?.status === 'submitted' ? 'Bid submitted' : 'Bid saved as draft');
       queryClient.invalidateQueries({ queryKey: ['tender', tenderId] });
       queryClient.invalidateQueries({ queryKey: ['supplier', 'bids'] });
       queryClient.invalidateQueries({ queryKey: ['my-bids-for-tender', tenderId] });
@@ -192,9 +191,8 @@ export function SupplierTenderDetail() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    submitMutation.mutate();
+  const handleSubmit = (shouldSubmit: boolean) => {
+    submitMutation.mutate(shouldSubmit);
   };
 
   if (isLoading || !tender) {
@@ -266,7 +264,13 @@ export function SupplierTenderDetail() {
             {tender.status !== 'published' || isPast ? (
               <p className="text-gray-600">This tender is not open for bids.</p>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(false);
+                }}
+                className="space-y-4"
+              >
                 <div>
                   <Label>Bid amount (optional)</Label>
                   <Input type="number" step="0.01" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className="mt-1" />
@@ -354,10 +358,10 @@ export function SupplierTenderDetail() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" onClick={() => setSubmit(false)} disabled={submitMutation.isPending || uploading}>
+                  <Button type="button" onClick={() => handleSubmit(false)} disabled={submitMutation.isPending || uploading}>
                     Save draft
                   </Button>
-                  <Button type="submit" onClick={() => setSubmit(true)} disabled={submitMutation.isPending || uploading}>
+                  <Button type="button" onClick={() => handleSubmit(true)} disabled={submitMutation.isPending || uploading}>
                     {submitMutation.isPending ? 'Submitting...' : 'Submit bid'}
                   </Button>
                 </div>

@@ -4,6 +4,7 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { notificationsService } from '@/services/notifications';
 import { cn } from '@/utils/cn';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 export function NotificationsDropdown() {
   const [open, setOpen] = useState(false);
@@ -40,8 +41,21 @@ export function NotificationsDropdown() {
     }
   }, [open]);
 
+  const unreadTotal = countData?.total ?? 0;
+  const prevUnreadRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevUnreadRef.current === null) {
+      prevUnreadRef.current = unreadTotal;
+      return;
+    }
+    if (unreadTotal > prevUnreadRef.current) {
+      playNotificationSound();
+    }
+    prevUnreadRef.current = unreadTotal;
+  }, [unreadTotal]);
+
   const items = data?.items ?? [];
-  const unreadCount = open ? items.filter((n) => !n.is_read).length : (countData?.total ?? 0);
+  const unreadCount = open ? items.filter((n) => !n.is_read).length : unreadTotal;
 
   const handleMarkAllRead = () => {
     const ids = items.filter((n) => !n.is_read).map((n) => n.id);
