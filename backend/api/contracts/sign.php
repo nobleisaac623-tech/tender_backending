@@ -33,6 +33,35 @@ if (!$contract) {
     jsonError('Contract not found', 404);
 }
 
+// Signing gate: require key clauses before any party can sign
+$required = [
+    'contract_date' => 'Contract date',
+    'effective_date' => 'Effective date',
+    'buyer_name_address' => 'Buyer name & address',
+    'supplier_name_address' => 'Supplier name & address',
+    'specification_of_goods' => 'Specification of goods/services',
+    'payment_terms_methods' => 'Payment terms & methods',
+    'delivery_terms' => 'Delivery terms',
+    'price_terms' => 'Price terms',
+    'termination_terms' => 'Termination terms',
+];
+$missing = [];
+foreach ($required as $field => $label) {
+    $v = $contract[$field] ?? null;
+    if ($v === null || trim((string) $v) === '') {
+        $missing[] = ['field' => $field, 'label' => $label];
+    }
+}
+if (!empty($missing)) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Contract is missing required clause fields and cannot be signed yet.',
+        'missing_fields' => $missing,
+    ]);
+    exit;
+}
+
 if ($role === 'admin') {
     if ($user['role'] !== 'admin') {
         jsonError('Forbidden', 403);

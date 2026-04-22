@@ -37,4 +37,3 @@ if ($user['role'] === 'supplier' && $c && (int) $c['supplier_id'] !== $user['use
 }
 
 jsonSuccess(['contract_id' => $contractId]);
-

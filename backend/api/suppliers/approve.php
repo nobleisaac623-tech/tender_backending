@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 require_once dirname(dirname(__DIR__)) . '/config/auth-middleware.php';
 require_once dirname(dirname(__DIR__)) . '/helpers/audit.php';
 require_once dirname(dirname(__DIR__)) . '/helpers/mailer.php';
+require_once dirname(dirname(__DIR__)) . '/helpers/email.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonError('Method not allowed', 405);
@@ -48,12 +49,17 @@ if ($action === 'approve') {
     $stmt->execute([$user['user_id'], $supplierId]);
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Account approved', 'Your supplier account has been approved. You can now submit bids.']);
-    sendMail(
-        $supplier['email'],
-        'Supplier account approved',
-        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been approved. You can now log in and submit bids for open tenders.</p>',
-        'Your supplier account has been approved.'
-    );
+    try {
+        brevoSendEmail(
+            $supplier['email'],
+            'Supplier account approved',
+            '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been approved. You can now log in and submit bids for open tenders.</p>',
+            'Your supplier account has been approved.'
+        );
+    } catch (Throwable $e) {
+        // Never block approval on email failures
+        error_log('Supplier approval email failed: ' . $e->getMessage());
+    }
     auditLog($pdo, $user['user_id'], 'supplier_approved', 'users', $supplierId, $supplier['email']);
     jsonSuccess(['message' => 'Supplier approved']);
 } elseif ($action === 'reinstate') {
@@ -64,12 +70,16 @@ if ($action === 'approve') {
     $stmt->execute([$supplierId]);
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Account reinstated', 'Your supplier account has been reinstated. You can now submit bids again.']);
-    sendMail(
-        $supplier['email'],
-        'Supplier account reinstated',
-        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been reinstated. You can now log in and continue participating in tenders.</p>',
-        'Your supplier account has been reinstated.'
-    );
+    try {
+        brevoSendEmail(
+            $supplier['email'],
+            'Supplier account reinstated',
+            '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been reinstated. You can now log in and continue participating in tenders.</p>',
+            'Your supplier account has been reinstated.'
+        );
+    } catch (Throwable $e) {
+        error_log('Supplier reinstatement email failed: ' . $e->getMessage());
+    }
     auditLog($pdo, $user['user_id'], 'supplier_reinstated', 'users', $supplierId, $supplier['email']);
     jsonSuccess(['message' => 'Supplier reinstated']);
 } elseif ($action === 'reject') {
@@ -78,12 +88,16 @@ if ($action === 'approve') {
     $stmt->execute([$reason, $supplierId]);
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Registration rejected', 'Your supplier registration was rejected. Reason: ' . $reason]);
-    sendMail(
-        $supplier['email'],
-        'Supplier registration rejected',
-        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier registration was reviewed and unfortunately rejected.</p><p><strong>Reason:</strong> ' . htmlspecialchars($reason) . '</p><p>You may contact the administrator for clarification or submit a new registration in the future.</p>',
-        'Your supplier registration was rejected. Reason: ' . $reason
-    );
+    try {
+        brevoSendEmail(
+            $supplier['email'],
+            'Supplier registration rejected',
+            '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier registration was reviewed and unfortunately rejected.</p><p><strong>Reason:</strong> ' . htmlspecialchars($reason) . '</p><p>You may contact the administrator for clarification or submit a new registration in the future.</p>',
+            'Your supplier registration was rejected. Reason: ' . $reason
+        );
+    } catch (Throwable $e) {
+        error_log('Supplier rejection email failed: ' . $e->getMessage());
+    }
     auditLog($pdo, $user['user_id'], 'supplier_rejected', 'users', $supplierId, $reason);
     jsonSuccess(['message' => 'Supplier rejected']);
 } else {
@@ -99,12 +113,16 @@ if ($action === 'approve') {
     $adminEmail = $admin['email'] ?? ($_ENV['ADMIN_EMAIL'] ?? '');
     $contactMsg = $adminEmail ? " Please contact the administrator at $adminEmail." : " Please contact the administrator.";
     
-    sendMail(
-        $supplier['email'],
-        'Your account has been suspended',
-        '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been suspended.</p><p>Reason: ' . htmlspecialchars($reason ?: 'No reason provided.') . '</p><p>' . $contactMsg . '</p>',
-        'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.') . $contactMsg
-    );
+    try {
+        brevoSendEmail(
+            $supplier['email'],
+            'Your account has been suspended',
+            '<p>Dear ' . htmlspecialchars($supplier['name']) . ',</p><p>Your supplier account has been suspended.</p><p>Reason: ' . htmlspecialchars($reason ?: 'No reason provided.') . '</p><p>' . $contactMsg . '</p>',
+            'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.') . $contactMsg
+        );
+    } catch (Throwable $e) {
+        error_log('Supplier suspension email failed: ' . $e->getMessage());
+    }
     
     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
     $stmt->execute([$supplierId, 'Account suspended', 'Your account has been suspended. Reason: ' . ($reason ?: 'No reason provided.')]);

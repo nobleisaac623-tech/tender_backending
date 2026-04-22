@@ -51,6 +51,7 @@ if (isSupplierBlacklisted($pdo, (int) $user['user_id'])) {
 
 $bidAmount = isset($body['bid_amount']) && is_numeric($body['bid_amount']) ? (float) $body['bid_amount'] : null;
 $technicalProposal = sanitizeString($body['technical_proposal'] ?? null, 50000);
+$deliveryTime = sanitizeString($body['delivery_time'] ?? null, 100);
 $submit = !empty($body['submit']);
 
 $stmt = $pdo->prepare("SELECT id, status FROM bids WHERE tender_id = ? AND supplier_id = ?");
@@ -61,16 +62,16 @@ if ($existing) {
     if ($existing['status'] === 'submitted') {
         jsonError('Bid already submitted', 400);
     }
-    $stmt = $pdo->prepare("UPDATE bids SET bid_amount = ?, technical_proposal = ?, status = ?, submitted_at = ? WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE bids SET bid_amount = ?, technical_proposal = ?, delivery_time = ?, status = ?, submitted_at = ? WHERE id = ?");
     $submittedAt = $submit ? date('Y-m-d H:i:s') : null;
     $status = $submit ? 'submitted' : 'draft';
-    $stmt->execute([$bidAmount, $technicalProposal ?: null, $status, $submittedAt, $existing['id']]);
+    $stmt->execute([$bidAmount, $technicalProposal ?: null, $deliveryTime ?: null, $status, $submittedAt, $existing['id']]);
     $bidId = (int) $existing['id'];
 } else {
     $submittedAt = $submit ? date('Y-m-d H:i:s') : null;
     $status = $submit ? 'submitted' : 'draft';
-    $stmt = $pdo->prepare("INSERT INTO bids (tender_id, supplier_id, bid_amount, technical_proposal, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$tenderId, $user['user_id'], $bidAmount, $technicalProposal ?: null, $status, $submittedAt]);
+    $stmt = $pdo->prepare("INSERT INTO bids (tender_id, supplier_id, bid_amount, technical_proposal, delivery_time, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$tenderId, $user['user_id'], $bidAmount, $technicalProposal ?: null, $deliveryTime ?: null, $status, $submittedAt]);
     $bidId = (int) $pdo->lastInsertId();
 }
 

@@ -38,7 +38,7 @@ if (strlen($message) > 500) {
     jsonError('Message must be at most 500 characters', 400);
 }
 
-$adminEmail = $_ENV['MAIL_FROM'] ?? $_ENV['ADMIN_EMAIL'] ?? 'procurement@example.com';
+$adminEmail = $_ENV['ADMIN_EMAIL'] ?? $_ENV['MAIL_FROM'] ?? 'procurement@example.com';
 
 $body = "
 <h2>New Contact Form Message</h2>

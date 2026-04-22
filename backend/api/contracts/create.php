@@ -27,6 +27,18 @@ $description = sanitizeString($body['description'] ?? null, 10000);
 $contractValue = isset($body['contract_value']) ? (is_numeric($body['contract_value']) ? (float) $body['contract_value'] : null) : null;
 $startDate = trim((string) ($body['start_date'] ?? ''));
 $endDate = trim((string) ($body['end_date'] ?? ''));
+$contractDate = trim((string) ($body['contract_date'] ?? ''));
+$effectiveDate = trim((string) ($body['effective_date'] ?? ''));
+$buyerNameAddress = sanitizeString($body['buyer_name_address'] ?? null, 10000);
+$supplierNameAddress = sanitizeString($body['supplier_name_address'] ?? null, 10000);
+$specificationOfGoods = sanitizeString($body['specification_of_goods'] ?? null, 20000);
+$paymentTermsMethods = sanitizeString($body['payment_terms_methods'] ?? null, 10000);
+$warrantyTerms = sanitizeString($body['warranty_terms'] ?? null, 10000);
+$breachAndRemedies = sanitizeString($body['breach_and_remedies'] ?? null, 10000);
+$deliveryTerms = sanitizeString($body['delivery_terms'] ?? null, 10000);
+$priceTerms = sanitizeString($body['price_terms'] ?? null, 10000);
+$priceAdjustmentTerms = sanitizeString($body['price_adjustment_terms'] ?? null, 10000);
+$terminationTerms = sanitizeString($body['termination_terms'] ?? null, 10000);
 
 $err = '';
 if ($tenderId <= 0) $err = 'tender_id required';
@@ -67,10 +79,36 @@ if (!$awarded || (int) $awarded['supplier_id'] !== $supplierId) {
 $year = date('Y');
 $placeholder = 'CON-' . $year . '-' . bin2hex(random_bytes(4));
 $stmt = $pdo->prepare("
-    INSERT INTO contracts (tender_id, supplier_id, contract_number, title, description, contract_value, start_date, end_date, status, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+    INSERT INTO contracts (
+        tender_id, supplier_id, contract_number, title, description, contract_value, start_date, end_date, contract_date, effective_date,
+        buyer_name_address, supplier_name_address, specification_of_goods, payment_terms_methods, warranty_terms, breach_and_remedies,
+        delivery_terms, price_terms, price_adjustment_terms, termination_terms, status, created_by
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)
 ");
-$stmt->execute([$tenderId, $supplierId, $placeholder, $title, $description ?: null, $contractValue, $startDate, $endDate, $user['user_id']]);
+$stmt->execute([
+    $tenderId,
+    $supplierId,
+    $placeholder,
+    $title,
+    $description ?: null,
+    $contractValue,
+    $startDate,
+    $endDate,
+    $contractDate !== '' ? $contractDate : null,
+    $effectiveDate !== '' ? $effectiveDate : null,
+    $buyerNameAddress ?: null,
+    $supplierNameAddress ?: null,
+    $specificationOfGoods ?: null,
+    $paymentTermsMethods ?: null,
+    $warrantyTerms ?: null,
+    $breachAndRemedies ?: null,
+    $deliveryTerms ?: null,
+    $priceTerms ?: null,
+    $priceAdjustmentTerms ?: null,
+    $terminationTerms ?: null,
+    $user['user_id']
+]);
 $contractId = (int) $pdo->lastInsertId();
 $contractNumber = 'CON-' . $year . '-' . str_pad((string) $contractId, 4, '0', STR_PAD_LEFT);
 $pdo->prepare("UPDATE contracts SET contract_number = ? WHERE id = ?")->execute([$contractNumber, $contractId]);

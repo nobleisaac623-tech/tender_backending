@@ -23,18 +23,27 @@ $tenderId = isset($_GET['tender_id']) ? (int) $_GET['tender_id'] : 0;
 $filterSupplierId = isset($_GET['supplier_id']) ? (int) $_GET['supplier_id'] : 0;
 
 if ($user['role'] === 'supplier') {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM bids WHERE supplier_id = ?");
-    $stmt->execute([$user['user_id']]);
+    $where = 'b.supplier_id = ?';
+    $params = [$user['user_id']];
+    if ($tenderId > 0) {
+        $where .= ' AND b.tender_id = ?';
+        $params[] = $tenderId;
+    }
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM bids b WHERE $where");
+    $stmt->execute($params);
     $total = (int) $stmt->fetchColumn();
     $stmt = $pdo->prepare("
-        SELECT b.id, b.tender_id, b.bid_amount, b.status, b.submitted_at, b.created_at, t.title AS tender_title, t.reference_number
+        SELECT b.id, b.tender_id, b.bid_amount, b.delivery_time, b.status, b.submitted_at, b.created_at, t.title AS tender_title, t.reference_number
         FROM bids b
         JOIN tenders t ON t.id = b.tender_id
-        WHERE b.supplier_id = ?
+        WHERE $where
         ORDER BY b.created_at DESC
         LIMIT ? OFFSET ?
     ");
-    $stmt->execute([$user['user_id'], $perPage, $offset]);
+    $params[] = $perPage;
+    $params[] = $offset;
+    $stmt->execute($params);
 } else {
     $where = '1=1';
     $params = [];
@@ -52,7 +61,7 @@ if ($user['role'] === 'supplier') {
     $params[] = $perPage;
     $params[] = $offset;
     $stmt = $pdo->prepare("
-        SELECT b.id, b.tender_id, b.supplier_id, b.bid_amount, b.technical_proposal, b.status, b.submitted_at, b.created_at,
+        SELECT b.id, b.tender_id, b.supplier_id, b.bid_amount, b.technical_proposal, b.delivery_time, b.status, b.submitted_at, b.created_at,
                t.title AS tender_title, t.reference_number, u.name AS supplier_name, u.email AS supplier_email,
                sp.company_name
         FROM bids b

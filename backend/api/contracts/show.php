@@ -46,6 +46,7 @@ $contract['created_by'] = (int) $contract['created_by'];
 $contract['contract_value'] = (float) $contract['contract_value'];
 $contract['signed_by_admin'] = (bool) $contract['signed_by_admin'];
 $contract['signed_by_supplier'] = (bool) $contract['signed_by_supplier'];
+$contract['supplier_rejected'] = isset($contract['supplier_rejected']) ? (bool) $contract['supplier_rejected'] : false;
 
 // Documents
 $stmt = $pdo->prepare("

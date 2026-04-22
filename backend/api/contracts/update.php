@@ -39,7 +39,11 @@ $params = [];
 
 $fields = [
     'title' => 'string', 'description' => 'string', 'contract_value' => 'float',
-    'start_date' => 'string', 'end_date' => 'string', 'status' => 'string',
+    'start_date' => 'string', 'end_date' => 'string', 'contract_date' => 'string', 'effective_date' => 'string',
+    'buyer_name_address' => 'string', 'supplier_name_address' => 'string', 'specification_of_goods' => 'string',
+    'payment_terms_methods' => 'string', 'warranty_terms' => 'string', 'breach_and_remedies' => 'string',
+    'delivery_terms' => 'string', 'price_terms' => 'string', 'price_adjustment_terms' => 'string',
+    'termination_terms' => 'string', 'status' => 'string',
 ];
 $allowedStatuses = ['draft', 'active', 'completed', 'terminated', 'disputed'];
 foreach ($fields as $field => $type) {

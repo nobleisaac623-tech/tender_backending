@@ -40,4 +40,8 @@ if (!empty($tender['tags'])) {
     $tender['tags'] = [];
 }
 
+$stmt = $pdo->prepare("SELECT id, filename, original_name, file_size, uploaded_at FROM tender_documents WHERE tender_id = ?");
+$stmt->execute([$id]);
+$tender['documents'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 jsonSuccess($tender);
