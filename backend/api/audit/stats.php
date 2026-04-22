@@ -1,7 +1,8 @@
 <?php
-require_once '../../config/cors.php';
-require_once '../../config/auth-middleware.php';
-require_once '../../helpers/response.php';
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/bootstrap.php';
+require_once dirname(dirname(__DIR__)) . '/config/auth-middleware.php';
 
 requireRole(['admin']);
 $pdo = $GLOBALS['pdo'];
