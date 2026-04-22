@@ -4,6 +4,7 @@ require_once '../../config/auth-middleware.php';
 require_once '../../helpers/response.php';
 
 requireRole(['admin']);
+$pdo = $GLOBALS['pdo'];
 
 $page     = max(1, (int)($_GET['page'] ?? 1));
 $limit    = min(50, max(10, (int)($_GET['limit'] ?? 20)));
@@ -40,25 +41,31 @@ if ($dateTo) {
 
 $where = implode(' AND ', $conditions);
 
-$total = $db->queryOne(
+$stmt = $pdo->prepare(
     "SELECT COUNT(*) as cnt FROM audit_log al
      LEFT JOIN users u ON u.id = al.user_id
-     WHERE $where",
-    $params
-)['cnt'];
+     WHERE $where"
+);
+$stmt->execute($params);
+$totalRow = $stmt->fetch(PDO::FETCH_ASSOC);
+$total = (int) ($totalRow['cnt'] ?? 0);
 
-$logs = $db->query(
+$stmt = $pdo->prepare(
     "SELECT al.*, u.name as user_name, u.email as user_email, u.role as user_role
      FROM audit_log al
      LEFT JOIN users u ON u.id = al.user_id
      WHERE $where
      ORDER BY al.created_at DESC
-     LIMIT $limit OFFSET $offset",
-    $params
+     LIMIT $limit OFFSET $offset"
 );
+$stmt->execute($params);
+$logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$actions  = $db->query("SELECT DISTINCT action FROM audit_log ORDER BY action");
-$entities = $db->query("SELECT DISTINCT entity_type FROM audit_log WHERE entity_type IS NOT NULL ORDER BY entity_type");
+$stmt = $pdo->query("SELECT DISTINCT action FROM audit_log ORDER BY action");
+$actions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->query("SELECT DISTINCT entity_type FROM audit_log WHERE entity_type IS NOT NULL ORDER BY entity_type");
+$entities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 jsonSuccess([
     'logs'     => $logs,

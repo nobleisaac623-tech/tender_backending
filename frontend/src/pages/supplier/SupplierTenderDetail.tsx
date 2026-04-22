@@ -191,7 +191,12 @@ export function SupplierTenderDetail() {
     }
   };
 
-  const handleSubmit = (shouldSubmit: boolean) => {
+  const handleSubmit = async (shouldSubmit: boolean) => {
+    // If supplier selected files but forgot to click "Upload", attach them automatically
+    // before saving/submitting the bid.
+    if (selectedFiles.length > 0) {
+      await uploadDocuments();
+    }
     submitMutation.mutate(shouldSubmit);
   };
 
@@ -308,9 +313,7 @@ export function SupplierTenderDetail() {
                     </div>
                   )}
                   <div className="mt-3 flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={uploadDocuments} disabled={uploading || selectedFiles.length === 0}>
-                      {uploading ? 'Uploading...' : 'Upload'}
-                    </Button>
+                    <span className="text-xs text-gray-500">Selected files are attached automatically when you save or submit.</span>
                     {currentBidId && <span className="text-xs text-gray-500">Bid draft ID: {currentBidId}</span>}
                   </div>
 
